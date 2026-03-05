@@ -4,7 +4,7 @@ import { join } from "node:path";
 import dayjs from "dayjs";
 
 export const user_home = homedir();
-export const home = join(user_home, ".agentara");
+export const home = Bun.env.AGENTARA_HOME || join(user_home, ".agentara");
 
 export const sessions = join(home, "sessions");
 export function resolveSessionFilePath(session_id: string) {
