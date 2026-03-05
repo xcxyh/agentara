@@ -14,7 +14,6 @@ You can call me "Tara" for short.
 ```bash
 bun install
 bun run dev      # Start the service
-bun run chat     # Interactive CLI chat
 ```
 
 On first run, `~/.agentara` is created with config, workspace, and memory files.
