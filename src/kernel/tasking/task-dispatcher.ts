@@ -104,6 +104,7 @@ export class TaskDispatcher {
       .insert(tasks)
       .values({
         id: job.id,
+        session_id: payload.session_id,
         type: payload.type,
         status: "pending",
         payload,

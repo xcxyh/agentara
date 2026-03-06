@@ -17,6 +17,8 @@ export type TaskStatus = z.infer<typeof TaskStatus>;
 export const Task = z.object({
   /** Unique identifier, same as the bunqueue job ID. */
   id: z.string(),
+  /** The session that owns this task. */
+  session_id: z.string(),
   /** The task payload type, e.g. `"inbound_message"` or `"cronjob"`. */
   type: z.string(),
   /** Current lifecycle status. */
