@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Message, Session, Task } from "agentara";
 
 import { api } from "./client";
@@ -47,3 +47,61 @@ export function useTasks(options?: { refreshInterval?: number }) {
  * Dispatches a new inbound message task.
  */
 export function useTaskDispatch() {}
+
+// --- Memory ---
+
+export type MemoryContent = { filename: string; content: string };
+
+/**
+ * Fetches USER.md content.
+ */
+export function useUserMemory() {
+  return useQuery({
+    queryKey: ["memory", "user"],
+    queryFn: () =>
+      api.memory.user
+        .$get()
+        .then((res) => res.json() as Promise<MemoryContent>),
+  });
+}
+
+/**
+ * Fetches SOUL.md content.
+ */
+export function useSoulMemory() {
+  return useQuery({
+    queryKey: ["memory", "soul"],
+    queryFn: () =>
+      api.memory.soul
+        .$get()
+        .then((res) => res.json() as Promise<MemoryContent>),
+  });
+}
+
+/**
+ * Updates USER.md content.
+ */
+export function useUserMemoryUpdate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (content: string) =>
+      api.memory.user.$put({ json: { content } }).then((res) => res.json()),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["memory", "user"] });
+    },
+  });
+}
+
+/**
+ * Updates SOUL.md content.
+ */
+export function useSoulMemoryUpdate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (content: string) =>
+      api.memory.soul.$put({ json: { content } }).then((res) => res.json()),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["memory", "soul"] });
+    },
+  });
+}

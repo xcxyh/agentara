@@ -41,7 +41,7 @@ function TasksPage() {
   }
   return (
     <TaskKanban
-      className="container mx-auto"
+      className="container-md mx-auto"
       tasks={tasks}
       onCopyTaskId={handleCopyTaskId}
     />
