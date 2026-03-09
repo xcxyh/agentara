@@ -97,6 +97,54 @@ All data lives under `$AGENTARA_HOME` (`~/.agentara` by default):
 └── data/             # SQLite databases
 ```
 
+## Architecture
+
+```mermaid
+graph TD
+    Client([Client / Web Dashboard])
+    Feishu([Feishu/Lark])
+
+    subgraph Server
+        API[Hono API Server]
+    end
+
+    subgraph Kernel
+        SM[SessionManager]
+        TD[TaskDispatcher]
+        MG[MessageGateway]
+    end
+
+    subgraph Session
+        S[Session]
+        AR[AgentRunner]
+    end
+
+    subgraph Community
+        Claude[ClaudeAgentRunner]
+        FeishuCh[Feishu Channel]
+    end
+
+    subgraph Storage
+        SQLite[(SQLite)]
+        JSONL[(Session JSONL)]
+    end
+
+    Client -->|REST API| API
+    Feishu -->|Webhook| FeishuCh
+
+    API --> TD
+    FeishuCh --> MG
+    MG --> TD
+
+    TD -->|Bunqueue| SM
+    SM --> S
+    S --> AR
+    AR --> Claude
+
+    TD -.->|Queue Storage| SQLite
+    SM -.->|Session Storage| JSONL
+```
+
 ## Project Structure
 
 ```
