@@ -1,5 +1,7 @@
 # 📯 Agentara
 
+[![CI](https://github.com/MagicCube/agentara/actions/workflows/ci.yml/badge.svg)](https://github.com/MagicCube/agentara/actions/workflows/ci.yml)
+[![Test](https://github.com/MagicCube/agentara/actions/workflows/test.yml/badge.svg)](https://github.com/MagicCube/agentara/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Bun](https://img.shields.io/badge/runtime-Bun-f9f1e1?logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -103,7 +105,7 @@ All data lives under `$AGENTARA_HOME` (`~/.agentara` by default):
 └── data/             # SQLite databases
 ```
 
-## Architecture
+## Architecture Overview
 
 ```mermaid
 graph TD
