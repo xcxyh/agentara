@@ -10,7 +10,7 @@
 
 ![agentara](https://github.com/user-attachments/assets/8f35f630-258a-4640-a976-a9c1e0543f43)
 
-Meet Tara, a 24/7 personal assistant powered by Claude Code as a SuperAgent. Multi-channel messaging, task scheduling, session management, and more — all running locally.
+Meet Tara, your 24/7 personal assistant powered by Claude Code. Multi-channel messaging, long-term memory, skills, task scheduling, session management, and more — all running locally.
 
 ## Features
 
