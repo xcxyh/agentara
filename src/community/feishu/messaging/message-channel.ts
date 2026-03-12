@@ -20,6 +20,7 @@ import {
 import { feishuThreads } from "./data";
 import { renderMessageCard } from "./message-renderer";
 import type { MessageReceiveEventData } from "./types";
+import { convertPostToMarkdown } from "./utils";
 
 /** Message channel implementation for Feishu (Lark) chat platform. */
 export class FeishuMessageChannel
@@ -300,10 +301,11 @@ export class FeishuMessageChannel
         text: json.text,
       };
     } else if (type === "post") {
-      console.info(json);
+      console.info(JSON.stringify(json, null, 2));
+      const markdown = convertPostToMarkdown(json);
       return {
         type: "text",
-        text: json.text,
+        text: markdown,
       };
     } else if (type === "image") {
       const file_key = json.image_key as string;
