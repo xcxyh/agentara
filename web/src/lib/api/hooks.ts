@@ -48,12 +48,14 @@ export function useSessionHistory(sessionId: string) {
             outbound?: AssistantMessage;
           }[] = [];
           for (const message of groupedMessages) {
+            const lastMessage = message[message.length - 1];
             groups.push({
               inbound: message[0] as UserMessage,
               steps: message.slice(1) as (AssistantMessage | ToolMessage)[],
-              outbound: message[message.length - 1] as
-                | AssistantMessage
-                | undefined,
+              outbound:
+                lastMessage.role === "assistant"
+                  ? (lastMessage as AssistantMessage | undefined)
+                  : undefined,
             });
           }
           return { messages, groups };

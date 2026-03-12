@@ -285,10 +285,7 @@ export class FeishuMessageChannel
     }
     filename += extname;
     await writeFile(nodePath.join(dir, filename));
-    return nodePath.relative(
-      config.paths.workspace,
-      nodePath.join(dir, filename),
-    );
+    return nodePath.relative(config.paths.home, nodePath.join(dir, filename));
   }
 
   private async _parseMessageContent(
@@ -302,13 +299,19 @@ export class FeishuMessageChannel
         type: "text",
         text: json.text,
       };
+    } else if (type === "post") {
+      console.info(json);
+      return {
+        type: "text",
+        text: json.text,
+      };
     } else if (type === "image") {
       const file_key = json.image_key as string;
       const path = await this._downloadMessageResource(messageId, file_key);
       // TODO: use image_url instead of text
       return {
         type: "text",
-        text: `A new image message uploaded to \`${path}\``,
+        text: `A new image has been uploaded to \`${path}\`. Load this image to your context to continue the conversation.`,
       };
     } else if (type === "file") {
       const file_key = json.file_key as string;
