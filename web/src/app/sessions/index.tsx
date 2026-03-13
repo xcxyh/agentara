@@ -106,7 +106,7 @@ function SessionsPage() {
               <div
                 key={session.id}
                 className={cn(
-                  "group flex items-center gap-3 rounded-lg border bg-card px-4 py-3 transition-colors",
+                  "group relative flex items-center gap-3 rounded-lg border bg-card px-4 py-3 transition-colors",
                   "hover:bg-accent/50",
                 )}
               >
@@ -151,7 +151,7 @@ function SessionsPage() {
                       type="button"
                       onClick={(e) => e.preventDefault()}
                       className={cn(
-                        "flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors",
+                        "absolute right-3 top-1/2 flex size-8 shrink-0 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-opacity",
                         "hover:bg-accent hover:text-foreground",
                         "opacity-0 group-hover:opacity-100",
                       )}

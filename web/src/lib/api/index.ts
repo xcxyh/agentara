@@ -3,6 +3,7 @@ export {
   useScheduledTaskRemove,
   useScheduledTasks,
   useScheduledTaskUpdate,
+  useSessionDelete,
   useSessionHistory,
   useSessions,
   useSkills,

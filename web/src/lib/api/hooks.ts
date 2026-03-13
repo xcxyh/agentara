@@ -24,6 +24,27 @@ export function useSessions() {
 }
 
 /**
+ * Deletes a session by ID.
+ */
+export function useSessionDelete() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const res = await api.sessions[":id"].$delete({
+        param: { id: sessionId },
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Delete failed: ${res.status} ${text}`);
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["sessions"] });
+    },
+  });
+}
+
+/**
  * Fetches the message history for a given session.
  */
 export function useSessionHistory(sessionId: string) {

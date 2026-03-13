@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 
 import { kernel } from "@/kernel";
+import { SessionNotFoundError } from "@/kernel/sessioning";
 import type { Message } from "@/shared";
 import { config } from "@/shared";
 
@@ -12,6 +13,18 @@ export const sessionRoutes = new Hono()
   .get("/", (c) => {
     const sessions = kernel.sessionManager.querySessions();
     return c.json(sessions);
+  })
+  .delete("/:id", (c) => {
+    const id = c.req.param("id");
+    try {
+      kernel.sessionManager.removeSession(id);
+      return c.body(null, 204);
+    } catch (err) {
+      if (err instanceof SessionNotFoundError) {
+        throw new HTTPException(404, { message: err.message });
+      }
+      throw err;
+    }
   })
   .get("/:id/history", async (c) => {
     const id = c.req.param("id");

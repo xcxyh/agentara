@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import type { Session } from "agentara";
 import Avatar from "boring-avatars";
 import {
@@ -6,9 +6,29 @@ import {
   CalendarClockIcon,
   ListTodoIcon,
   MessagesSquareIcon,
+  MoreHorizontal,
   SparklesIcon,
+  Trash2,
 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sidebar,
@@ -25,7 +45,7 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useSessions } from "@/lib/api";
+import { useSessionDelete, useSessions } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -70,6 +90,24 @@ function RecentsSidebarGroup({
   sessions: Session[] | undefined;
 }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const deleteMutation = useSessionDelete();
+  const [toDelete, setToDelete] = useState<Session | null>(null);
+
+  const handleDelete = async () => {
+    if (!toDelete) return;
+    try {
+      await deleteMutation.mutateAsync(toDelete.id);
+      if (location.pathname === `/sessions/${toDelete.id}`) {
+        navigate({ to: "/sessions" });
+      }
+      toast.success("Session deleted");
+      setToDelete(null);
+    } catch {
+      toast.error("Failed to delete session");
+    }
+  };
+
   if (loading) {
     return (
       <SidebarGroup>
@@ -96,32 +134,86 @@ function RecentsSidebarGroup({
         <ScrollArea className="max-h-64">
           <SidebarMenu>
             {sessions!.slice(0, 50).map((session) => (
-              <SidebarMenuItem key={session.id} className="max-w-60">
-                <SidebarMenuButton
-                  asChild
-                  isActive={location.pathname === `/sessions/${session.id}`}
-                  tooltip={session.id}
-                >
-                  <Link
-                    to="/sessions/$sessionId"
-                    params={{ sessionId: session.id }}
+              <SidebarMenuItem
+                key={session.id}
+                className="group/menu relative max-w-60"
+              >
+                <div className="flex w-full items-center gap-0">
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === `/sessions/${session.id}`}
+                    tooltip={session.id}
+                    className="flex-1 min-w-0 rounded-r-none"
                   >
-                    <span className="truncate">
-                      {session.first_message ? (
-                        session.first_message
-                      ) : (
-                        <span className="text-muted-foreground/75">
-                          (Empty)
-                        </span>
-                      )}
-                    </span>
-                  </Link>
-                </SidebarMenuButton>
+                    <Link
+                      to="/sessions/$sessionId"
+                      params={{ sessionId: session.id }}
+                    >
+                      <span className="truncate">
+                        {session.first_message ? (
+                          session.first_message
+                        ) : (
+                          <span className="text-muted-foreground/75">
+                            (Empty)
+                          </span>
+                        )}
+                      </span>
+                    </Link>
+                  </SidebarMenuButton>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={(e) => e.preventDefault()}
+                        className={cn(
+                          "absolute right-1 top-1/2 flex size-7 shrink-0 -translate-y-1/2 items-center justify-center rounded-md rounded-l-none border-l border-sidebar-border text-muted-foreground transition-opacity",
+                          "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                          "opacity-0 group-hover/menu:opacity-100",
+                        )}
+                        aria-label="Session menu"
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onSelect={() => setToDelete(session)}
+                      >
+                        <Trash2 className="size-4" />
+                        Delete session
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
         </ScrollArea>
       </SidebarGroupContent>
+      <AlertDialog
+        open={!!toDelete}
+        onOpenChange={(o) => !o && setToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete session</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The session and its history will be
+              permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive! text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarGroup>
   );
 }

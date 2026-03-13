@@ -1,3 +1,5 @@
+import { existsSync, unlinkSync } from "node:fs";
+
 import { and, desc, eq } from "drizzle-orm";
 
 import type { DrizzleDB } from "@/data";
@@ -186,6 +188,23 @@ export class SessionManager {
       .orderBy(desc(sessions.updated_at))
       .limit(limit)
       .all();
+  }
+
+  /**
+   * Removes a session: deletes the database record and the associated JSONL file.
+   * @param sessionId - The session identifier.
+   * @throws SessionNotFoundError if the session does not exist.
+   */
+  removeSession(sessionId: string): void {
+    if (!this.existsSession(sessionId)) {
+      throw new SessionNotFoundError(sessionId);
+    }
+    this._db.delete(sessions).where(eq(sessions.id, sessionId)).run();
+    const filePath = config.paths.resolveSessionFilePath(sessionId);
+    if (existsSync(filePath)) {
+      unlinkSync(filePath);
+    }
+    this._logger.info(`Removed session: ${sessionId}`);
   }
 
   /**
