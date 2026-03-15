@@ -154,8 +154,8 @@ export class TaskDispatcher {
   /**
    * Register or update a scheduled task.
    * Persists the definition to the `scheduled_tasks` table and registers
-   * a bunqueue job scheduler. Calling this again with the same
-   * {@link sessionId} updates both the DB row and the scheduler.
+   * a bunqueue job scheduler. Each task gets a unique scheduler ID; multiple
+   * tasks may share the same session_id (contextual mode).
    * @param sessionId - The session ID. When `null`, each trigger creates a fresh session (independent mode).
    * @param payload - The scheduled task payload describing what to do.
    * @param schedule - The schedule configuration describing when to do it.
@@ -166,7 +166,7 @@ export class TaskDispatcher {
     payload: ScheduledTaskPayload,
     schedule: TaskSchedule,
   ): Promise<string> {
-    const schedulerId = sessionId ?? uuid();
+    const schedulerId = uuid();
     const jobData: TaskJobData = {
       session_id: sessionId,
       payload,

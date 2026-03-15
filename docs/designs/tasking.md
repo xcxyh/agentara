@@ -7,7 +7,7 @@ Task scheduling, routing, and execution via Bunqueue. Provides per-session seria
 - **Per-session serialization**: Tasks for the same `session_id` execute in FIFO order to avoid agent state conflicts.
 - **Cross-session parallelism**: Multiple sessions can process tasks concurrently.
 - **Handler injection**: TaskDispatcher does not know sessions or agents; execution logic is injected via `route()`.
-- **Cron scheduling**: Support repeatable tasks with cron expressions, deduplicated by session ID.
+- **Cron scheduling**: Support repeatable tasks with cron expressions. Each cronjob has a unique scheduler ID; multiple cronjobs may share the same `session_id` (contextual mode).
 
 ## Architecture
 
@@ -28,7 +28,7 @@ All payloads extend a base with `session_id`. The `type` field discriminates uni
 
 ### BaseTaskPayload
 
-- `session_id`: string — Identifies the session; used for serial execution and scheduler deduplication.
+- `session_id`: string — Identifies the session; used for serial execution (FIFO per session).
 
 ### InboundMessageTaskPayload
 
@@ -39,9 +39,10 @@ All payloads extend a base with `session_id`. The `type` field discriminates uni
 ### CronjobTaskPayload
 
 - `type`: `"cronjob"`
-- `session_id`: string — Also used as bunqueue scheduler ID for deduplication.
+- `session_id`: string | null — When set, runs in that session (contextual mode). When null, each trigger creates a fresh session (independent mode).
 - `instruction`: string — Instruction sent to the agent.
 - `cron_pattern`: string — Cron expression, e.g. `"0 3 * * *"`.
+- Scheduler ID (primary key) is always a unique UUID, independent of `session_id`.
 
 ### TaskPayload
 
@@ -55,8 +56,9 @@ Discriminated union of `InboundMessageTaskPayload | CronjobTaskPayload`.
 |--------|-------------|
 | `route(type, handler)` | Register handler for a task type. Must be called before `start`. Throws if type already registered. |
 | `dispatch(payload)` | Enqueue a task. Returns bunqueue job ID. |
-| `scheduleCronjob(payload)` | Add or update a cron scheduler. Same `session_id` updates without duplicate. |
-| `removeCronjob(sessionId)` | Remove cron scheduler by session ID. |
+| `scheduleTask(sessionId, payload, schedule)` | Add a cron scheduler. Returns unique scheduler ID (UUID). Multiple tasks may share the same session_id. |
+| `updateScheduledTask(schedulerId, ...)` | Update an existing scheduler by its scheduler ID. |
+| `removeScheduledTask(schedulerId)` | Remove cron scheduler by scheduler ID. |
 | `start()` | Start the worker. Call once at startup. |
 | `stop()` | Gracefully shut down worker and queue. |
 

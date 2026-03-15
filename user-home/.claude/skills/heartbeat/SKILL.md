@@ -88,6 +88,8 @@ A finding must pass at least 2 of 3 to be included.
 
 ## Step 5: Output
 
+The evaluation process (date filtering, Worth Interrupting reasoning) is internal only — never show it to the user. Output starts directly with the briefing or `[SKIPPED]`, nothing else.
+
 ### If noteworthy findings exist:
 
 Return a concise briefing in the user's preferred language (Chinese primary, English for tech terms). Format:
