@@ -28,13 +28,16 @@ Extract a prioritized list of **watchlist topics**. Typical categories:
 
 ## Step 2: Read News
 
-Read the latest news and trending topics from the following sources:
-- [Hacker News](https://hnrss.org/newest)
-- [Product Hunt](https://www.producthunt.com/feed)
-- [GitHub Trending](https://github.com/trending?since=daily)
-- [Google News](https://news.google.com/rss?hl=zh-CN&gl=CN&ceid=CN:zh-Hans)
+Fetch the following sources directly by URL — no search needed, just fetch:
 
-Find the most relevant news for the user's profile and watchlist topics.
+| Source | URL | Notes |
+|--------|-----|-------|
+| Hacker News | https://hnrss.org/newest | RSS feed |
+| **Product Hunt** | https://www.producthunt.com/feed | RSS feed — **high weight**: today's top launches often contain directly actionable tools or competitors |
+| **GitHub Trending** | https://github.com/trending?since=daily | Daily trending — **high weight**: surfacing repos that match the user's stack or interests is high-value signal |
+| Google News (CN) | https://news.google.com/rss?hl=zh-CN&gl=CN&ceid=CN:zh-Hans | RSS feed |
+
+**Weighting guidance**: Product Hunt and GitHub Trending are real-time ranked signals — their top items reflect what's genuinely popular *today*. Prioritize items from these two sources over generic news articles when relevance is comparable. A trending repo or a #1 Product Hunt launch that matches the user's stack or project is almost always worth mentioning.
 
 ## Step 3: Search
 
@@ -51,9 +54,20 @@ Skip topics where nothing meaningful could have changed since the last check (e.
 
 ## Step 4: Evaluate — The "Worth Interrupting" Test
 
-For each finding, apply this filter:
+### Hard filter: Date verification (run this FIRST, before anything else)
 
-1. **Is it today's news?** (not something the user already knows from memory or the previous briefing)
+For every item found in Step 2 or Step 3, you must verify its publication date by checking the article page or search result metadata. Record the date explicitly.
+
+- If the publication date is **within the last 48 hours** (T or T-1 relative to today): eligible, proceed to the Worth Interrupting test below.
+- If the publication date is **older than 48 hours**, or **cannot be determined**: discard immediately, do not include.
+
+This is a hard gate — relevance does not override staleness. A perfectly relevant article from last week is still discarded. When in doubt about a date, discard.
+
+### Worth Interrupting test (only for items that passed the date filter)
+
+For each remaining finding, apply this filter:
+
+1. **Is it genuinely new?** (not something the user already knows from memory or the previous briefing)
 2. **Is it actionable or time-sensitive?** (the user should do something, or the window to act is closing)
 3. **Does it meaningfully change the picture?** (not incremental noise, but a real shift)
 

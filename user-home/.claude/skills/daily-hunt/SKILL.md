@@ -77,6 +77,8 @@ Use the user's preferred language (check memory — if Chinese-speaking, use Chi
 
 #### Output Structure
 
+Use **list format** (not tables) for all items — this renders correctly on mobile and in IM apps.
+
 ```
 # Daily Hunt 🏹 — {date}
 
@@ -84,23 +86,29 @@ Use the user's preferred language (check memory — if Chinese-speaking, use Chi
 
 ## Product Hunt 热门发布
 
-| 产品 | 简介 | 为什么值得关注 |
-|------|------|----------------|
-| ⭐ [Name](link) | tagline | personalized reason |
-| [Name](link) | tagline | reason |
-| ... | ... | ... |
+1. ⭐ **[Name](link)**
+   tagline
+   → personalized reason why it matters
+
+2. **[Name](link)**
+   tagline
+   → reason
+
+...
 
 ---
 
 ## GitHub Trending Top 10
 
-| 项目 | 简介 | ⭐ Stars | 🍴 Forks | 今日 |
-|-----|---------|---------|------|
-| ⭐ [owner/repo](link) | description | 31.4k | 2.1k | +1,122 |
-| [owner/repo](link) | description | 8.9k | 430 | +300 |
-| ... | ... | ... | ... | ... |
+1. 🔥 **[owner/repo](link)** · Python · ⭐31.4k · 🍴2.1k · +1,122 今日
+   description
 
-## 📌 Henry's Picks (个人精选)
+2. ⭐ **[owner/repo](link)** · TypeScript · ⭐8.9k · 🍴430 · +300 今日
+   description
+
+...
+
+## 📌 昕哥精选
 
 {2-3 sentences highlighting the most relevant items for this specific user,
 explaining WHY these matter for their work/projects. Reference specific
@@ -109,13 +117,13 @@ projects or interests from memory.}
 
 ### Key Rules
 
-- **Product Hunt items** MUST include: name, link, tagline, personalized "why care" note
-- **GitHub items** MUST include: full repo name, link, description, star count, fork count
+- **Use lists, not tables** — tables break on mobile and in most IM apps
+- **Product Hunt items** MUST include: name, link, tagline, personalized "why care" note (prefixed with →)
+- **GitHub items** MUST include: full repo name, link, language, star count, fork count, today's stars, description
 - "Today's stars" (stars gained today) should be shown when available from the trending page
 - If data for a source is partially unavailable, still show what you can and note the gap
 - The "Personal Picks" section at the end is the differentiator — make it genuinely insightful
 - Do NOT pad with generic descriptions — be specific about why each item matters to THIS user
 - Use Chinese full-width punctuation (，、：！) for Chinese content
 - First-level headings use `#` not `##`
-- Tables should be clean and scannable
-- Keep the "why care" column concise (one sentence max)
+- Keep the "why care" note concise (one sentence max)
