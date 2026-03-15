@@ -5,6 +5,7 @@ import type { AssistantMessage, UserMessage } from "@/shared";
 import {
   config,
   createLogger,
+  extractTextContent,
   uuid,
   type InboundMessageTaskPayload,
   type ScheduledTaskPayload,
@@ -201,6 +202,9 @@ ${payload.instruction}`,
     });
     delete payload_without_instruction.instruction;
     const assistantMessage = await session.run(userMessage);
+    if (extractTextContent(assistantMessage).includes("[SKIPPED]")) {
+      return;
+    }
     await this._messageGateway.postMessage(assistantMessage);
   };
 }
