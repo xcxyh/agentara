@@ -19,10 +19,9 @@ Usage:
 
 import asyncio
 import json
-import os
 import re
-import time
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -30,8 +29,8 @@ from pathlib import Path
 import aiohttp
 import feedparser
 import requests
-from readability import Document
 from markdownify import markdownify as md
+from readability import Document
 
 UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -40,35 +39,60 @@ UA = (
 TIMEOUT = aiohttp.ClientTimeout(total=15)
 
 WEATHER_EMOJI = {
-    "Sunny": "☀️", "Clear": "☀️",
-    "Partly Cloudy": "⛅", "Partly cloudy": "⛅",
-    "Cloudy": "☁️", "Overcast": "☁️",
-    "Light rain": "🌧️", "Light rain shower": "🌧️",
-    "Moderate rain": "🌧️🌧️", "Heavy rain": "🌧️🌧️",
+    "Sunny": "☀️",
+    "Clear": "☀️",
+    "Partly Cloudy": "⛅",
+    "Partly cloudy": "⛅",
+    "Cloudy": "☁️",
+    "Overcast": "☁️",
+    "Light rain": "🌧️",
+    "Light rain shower": "🌧️",
+    "Moderate rain": "🌧️🌧️",
+    "Heavy rain": "🌧️🌧️",
     "Moderate or heavy rain shower": "🌧️🌧️",
-    "Patchy light rain": "🌦️", "Light drizzle": "🌦️",
-    "Patchy rain possible": "🌦️", "Patchy rain nearby": "🌦️",
-    "Light snow": "❄️", "Moderate snow": "❄️",
-    "Heavy snow": "🌨️", "Blizzard": "🌨️",
-    "Thundery outbreaks possible": "⛈️", "Thunderstorm": "⛈️",
+    "Patchy light rain": "🌦️",
+    "Light drizzle": "🌦️",
+    "Patchy rain possible": "🌦️",
+    "Patchy rain nearby": "🌦️",
+    "Light snow": "❄️",
+    "Moderate snow": "❄️",
+    "Heavy snow": "🌨️",
+    "Blizzard": "🌨️",
+    "Thundery outbreaks possible": "⛈️",
+    "Thunderstorm": "⛈️",
     "Moderate or heavy rain with thunder": "⛈️",
-    "Fog": "🌫️", "Mist": "🌫️", "Haze": "🌫️",
+    "Fog": "🌫️",
+    "Mist": "🌫️",
+    "Haze": "🌫️",
 }
 
 PODCAST_URLS = [
     ("硅谷101", "https://www.xiaoyuzhoufm.com/podcast/5e5c52c9418a84a04625e6cc"),
-    ("罗永浩的十字路口", "https://www.xiaoyuzhoufm.com/podcast/68981df29e7bcd326eb91d88"),
-    ("十字路口 Crossing", "https://www.xiaoyuzhoufm.com/podcast/60502e253c92d4f62c2a9577"),
+    (
+        "罗永浩的十字路口",
+        "https://www.xiaoyuzhoufm.com/podcast/68981df29e7bcd326eb91d88",
+    ),
+    (
+        "十字路口 Crossing",
+        "https://www.xiaoyuzhoufm.com/podcast/60502e253c92d4f62c2a9577",
+    ),
     ("晚点聊", "https://www.xiaoyuzhoufm.com/podcast/61933ace1b4320461e91fd55"),
     ("锦供参考", "https://www.xiaoyuzhoufm.com/podcast/69a6aba3de6dd3793a39e06b"),
-    ("elsewhere别处发生", "https://www.xiaoyuzhoufm.com/podcast/68ff657d9c745a6e69da8fcf"),
-    ("张小珺Jùn｜商业访谈录", "https://www.xiaoyuzhoufm.com/podcast/626b46ea9cbbf0451cf5a962"),
+    (
+        "elsewhere别处发生",
+        "https://www.xiaoyuzhoufm.com/podcast/68ff657d9c745a6e69da8fcf",
+    ),
+    (
+        "张小珺Jùn｜商业访谈录",
+        "https://www.xiaoyuzhoufm.com/podcast/626b46ea9cbbf0451cf5a962",
+    ),
 ]
 
 
 # ---------------------------------------------------------------------------
 # Fetchers
 # ---------------------------------------------------------------------------
+
 
 async def fetch_weather(session: aiohttp.ClientSession, city: str) -> dict:
     """Fetch weather from wttr.in and extract minimal fields."""
@@ -104,7 +128,7 @@ async def fetch_producthunt(session: aiohttp.ClientSession) -> dict:
         readable_html = doc.summary()
         markdown = md(readable_html, strip=["img", "script", "style"])
         # Trim excessive whitespace
-        markdown = re.sub(r'\n{3,}', '\n\n', markdown).strip()
+        markdown = re.sub(r"\n{3,}", "\n\n", markdown).strip()
         # Cap at ~8000 chars to avoid bloating JSON
         if len(markdown) > 8000:
             markdown = markdown[:8000] + "\n\n... (truncated)"
@@ -137,15 +161,21 @@ async def fetch_github_trending(session: aiohttp.ClientSession) -> list:
             # Fallback: look for /owner/repo pattern (2 segments, no special paths)
             for href in name_matches:
                 parts = href.strip("/").split("/")
-                if len(parts) == 2 and "?" not in href and parts[0] not in ("login", "sponsors", "settings", "features"):
+                if (
+                    len(parts) == 2
+                    and "?" not in href
+                    and parts[0] not in ("login", "sponsors", "settings", "features")
+                ):
                     full_name = "/".join(parts)
                     break
         if not full_name:
             continue
 
         # Description
-        desc_match = re.search(r'<p\s+class="[^"]*">\s*(.*?)\s*</p>', article, re.DOTALL)
-        desc = re.sub(r'<[^>]+>', '', desc_match.group(1)).strip() if desc_match else ""
+        desc_match = re.search(
+            r'<p\s+class="[^"]*">\s*(.*?)\s*</p>', article, re.DOTALL
+        )
+        desc = re.sub(r"<[^>]+>", "", desc_match.group(1)).strip() if desc_match else ""
         desc = desc.replace("&amp;", "&")
 
         # Language
@@ -153,23 +183,31 @@ async def fetch_github_trending(session: aiohttp.ClientSession) -> list:
         lang = lang_match.group(1).strip() if lang_match else ""
 
         # Stars today
-        stars_today_match = re.search(r'([\d,]+)\s+stars\s+today', article)
-        stars_today = stars_today_match.group(1).replace(",", "") if stars_today_match else "0"
+        stars_today_match = re.search(r"([\d,]+)\s+stars\s+today", article)
+        stars_today = (
+            stars_today_match.group(1).replace(",", "") if stars_today_match else "0"
+        )
 
         # Total stars — look for stargazers link with count
-        total_match = re.findall(r'href="/[^"]+/stargazers"[^>]*>\s*(?:<[^>]*>\s*)*([\d,]+)\s*', article)
+        total_match = re.findall(
+            r'href="/[^"]+/stargazers"[^>]*>\s*(?:<[^>]*>\s*)*([\d,]+)\s*', article
+        )
         if not total_match:
-            total_match = re.findall(r'class="Link[^"]*"[^>]*>\s*([\d,]+)\s*</a>', article)
+            total_match = re.findall(
+                r'class="Link[^"]*"[^>]*>\s*([\d,]+)\s*</a>', article
+            )
         total_stars = total_match[0].replace(",", "") if total_match else ""
 
-        repos.append({
-            "name": full_name,
-            "description": desc,
-            "language": lang,
-            "stars_today": int(stars_today),
-            "total_stars": total_stars,
-            "url": f"https://github.com/{full_name}",
-        })
+        repos.append(
+            {
+                "name": full_name,
+                "description": desc,
+                "language": lang,
+                "stars_today": int(stars_today),
+                "total_stars": total_stars,
+                "url": f"https://github.com/{full_name}",
+            }
+        )
 
     return repos
 
@@ -183,27 +221,33 @@ async def fetch_google_news_rss(session: aiohttp.ClientSession) -> list:
     feed = feedparser.parse(text)
     entries = []
     for entry in feed.entries[:20]:
-        entries.append({
-            "title": entry.get("title", ""),
-            "link": entry.get("link", ""),
-            "published": entry.get("published", ""),
-        })
+        entries.append(
+            {
+                "title": entry.get("title", ""),
+                "link": entry.get("link", ""),
+                "published": entry.get("published", ""),
+            }
+        )
     return entries
 
 
-async def fetch_single_podcast(session: aiohttp.ClientSession, name: str, url: str) -> dict | None:
+async def fetch_single_podcast(
+    session: aiohttp.ClientSession, name: str, url: str
+) -> dict | None:
     """Fetch a single podcast page and extract latest episode from __NEXT_DATA__."""
     try:
         async with session.get(url, headers={"User-Agent": UA}) as resp:
             html = await resp.text()
 
         # Extract __NEXT_DATA__ JSON blob
-        nd_match = re.search(r'__NEXT_DATA__[^>]*>(.*?)</script>', html)
+        nd_match = re.search(r"__NEXT_DATA__[^>]*>(.*?)</script>", html)
         if not nd_match:
             return None
 
         next_data = json.loads(nd_match.group(1))
-        podcast_data = next_data.get("props", {}).get("pageProps", {}).get("podcast", {})
+        podcast_data = (
+            next_data.get("props", {}).get("pageProps", {}).get("podcast", {})
+        )
         episodes = podcast_data.get("episodes", [])
         if not episodes:
             return None
@@ -213,7 +257,7 @@ async def fetch_single_podcast(session: aiohttp.ClientSession, name: str, url: s
         eid = ep.get("eid", "")
         pub_date_str = ep.get("pubDate", "")
         shownotes = ep.get("shownotes") or ep.get("description") or ""
-        shownotes = re.sub(r'<[^>]+>', '', shownotes).strip()  # strip HTML tags
+        shownotes = re.sub(r"<[^>]+>", "", shownotes).strip()  # strip HTML tags
 
         if not title or not eid:
             return None
@@ -273,14 +317,18 @@ def fetch_stock_sync() -> dict:
                 if len(parts) < 5:
                     continue
                 try:
-                    rows.append({
-                        "date": parts[0],
-                        "open": float(parts[1]),
-                        "high": float(parts[2]),
-                        "low": float(parts[3]),
-                        "close": float(parts[4]),
-                        "vol": float(parts[5]) if len(parts) > 5 and parts[5] else 0.0,
-                    })
+                    rows.append(
+                        {
+                            "date": parts[0],
+                            "open": float(parts[1]),
+                            "high": float(parts[2]),
+                            "low": float(parts[3]),
+                            "close": float(parts[4]),
+                            "vol": float(parts[5])
+                            if len(parts) > 5 and parts[5]
+                            else 0.0,
+                        }
+                    )
                 except ValueError:
                     continue
 
@@ -294,7 +342,9 @@ def fetch_stock_sync() -> dict:
                     row["chg"] = 0.0
                 else:
                     prev = rows[i - 1]["close"]
-                    row["pct"] = round((row["close"] - prev) / prev * 100, 4) if prev else 0.0
+                    row["pct"] = (
+                        round((row["close"] - prev) / prev * 100, 4) if prev else 0.0
+                    )
                     row["chg"] = round(row["close"] - prev, 4)
 
             latest = rows[-1]
@@ -320,12 +370,13 @@ WORKSPACE = Path.home() / ".agentara" / "workspace"
 
 def generate_stock_chart(code: str, rows: list[dict]) -> str | None:
     """Generate a 45-day line chart (3:2 aspect). Gradient fill: green=down, red=up."""
-    import numpy as np
     import matplotlib
+    import numpy as np
+
     matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
     import matplotlib.colors as mcolors
+    import matplotlib.dates as mdates
+    import matplotlib.pyplot as plt
     from matplotlib.colors import LinearSegmentedColormap
 
     if len(rows) < 2:
@@ -362,25 +413,41 @@ def generate_stock_chart(code: str, rows: list[dict]) -> str | None:
         zorder=0,
     )
     ax.fill_between(dates, closes, y_max, color="white", linewidth=0, zorder=1)
-    ax.plot(dates, closes, color=accent, linewidth=1.2, solid_capstyle="round", zorder=2)
+    ax.plot(
+        dates, closes, color=accent, linewidth=1.8, solid_capstyle="round", zorder=2
+    )
 
     # Latest price dot
-    ax.scatter([dates[-1]], [closes[-1]], color=accent, s=50, zorder=5, edgecolors="white", linewidths=1.5)
+    ax.scatter(
+        [dates[-1]],
+        [closes[-1]],
+        color=accent,
+        s=50,
+        zorder=5,
+        edgecolors="white",
+        linewidths=1.5,
+    )
 
     # Annotate latest price
     ax.annotate(
         f"${latest['close']:.2f}  ({change_pct:+.2f}%)",
         xy=(dates[-1], closes[-1]),
-        xytext=(-12, 14), textcoords="offset points",
-        fontsize=11, fontweight="bold", color=accent,
+        xytext=(-12, 14),
+        textcoords="offset points",
+        fontsize=11,
+        fontweight="bold",
+        color=accent,
         ha="right",
     )
 
     # Title — English only, no CJK
     ax.set_title(
         f"{code}  ·  45-Day Close",
-        fontsize=14, fontweight="bold", color="#2C3E50",
-        loc="left", pad=14,
+        fontsize=14,
+        fontweight="bold",
+        color="#2C3E50",
+        loc="left",
+        pad=14,
     )
 
     # Axis formatting
@@ -421,6 +488,7 @@ def generate_stock_chart(code: str, rows: list[dict]) -> str | None:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 async def main():
     t0 = time.time()
