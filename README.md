@@ -24,6 +24,31 @@ Meet Tara, your 24/7 personal assistant powered by Claude Code. Multi-channel me
 - **File and image support** — Send and receive files and images through message channels
 - **RESTful API** — Hono-based API server with type-safe RPC client
 
+## Built-in Skills
+
+- [amap](user-home/.claude/skills/amap)
+- [claude-usage](user-home/.claude/skills/claude-usage)
+- [consulting-analysis](user-home/.claude/skills/consulting-analysis)
+- [current-time](user-home/.claude/skills/current-time)
+- [daily-hunt](user-home/.claude/skills/daily-hunt)
+- [data-analysis](user-home/.claude/skills/data-analysis)
+- [deep-research](user-home/.claude/skills/deep-research)
+- [find-skills](user-home/.claude/skills/find-skills)
+- [fix-my-life](user-home/.claude/skills/fix-my-life)
+- [frontend-design](user-home/.claude/skills/frontend-design)
+- [github-deep-research](user-home/.claude/skills/github-deep-research)
+- [heartbeat](user-home/.claude/skills/heartbeat)
+- [image-generation](user-home/.claude/skills/image-generation)
+- [ppt-generation](user-home/.claude/skills/ppt-generation)
+- [pulse](user-home/.claude/skills/pulse)
+- [scheduled-tasks](user-home/.claude/skills/scheduled-tasks)
+- [skill-creator](user-home/.claude/skills/skill-creator)
+- [stock](user-home/.claude/skills/stock)
+- [technical-writing-skill](user-home/.claude/skills/technical-writing-skill)
+- [vercel-deploy-claimable](user-home/.claude/skills/vercel-deploy-claimable)
+- [weather-report](user-home/.claude/skills/weather-report)
+- [web-design-guidelines](user-home/.claude/skills/web-design-guidelines)
+
 ## Tech Stack
 
 **Backend**
