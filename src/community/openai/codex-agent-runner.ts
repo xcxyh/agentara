@@ -47,6 +47,7 @@ export class CodexAgentRunner implements AgentRunner {
           ...["--model", config.agents.default.model],
           "--json",
           "--full-auto",
+          "--skip-git-repo-check",
           textContentOfUserMessage,
         ]
       : [
@@ -55,6 +56,7 @@ export class CodexAgentRunner implements AgentRunner {
           ...["--model", config.agents.default.model],
           "--json",
           "--full-auto",
+          "--skip-git-repo-check",
           "resume",
           sessionId,
           textContentOfUserMessage,

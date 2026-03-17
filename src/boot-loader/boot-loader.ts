@@ -1,5 +1,13 @@
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 import { config, createLogger, reloadConfig } from "@/shared";
@@ -60,6 +68,10 @@ class BootLoader {
       await downloadSkills();
     }
 
+    // Symlink .agents/skills → .claude/skills so the Codex CLI can also
+    // read skills.  Only created once; subsequent boots see the existing link.
+    this._ensureSkillsSymlink();
+
     const configPath = join(config.paths.home, "config.yaml");
     if (!existsSync(configPath)) {
       logger.info("config.yaml not found, generating default configuration...");
@@ -86,6 +98,38 @@ messaging:
 
     if (!existsSync(config.paths.data)) {
       mkdirSync(config.paths.data, { recursive: true });
+    }
+  }
+
+  /**
+   * Creates a symlink at `.agents/skills` → `.claude/skills` so the Codex
+   * CLI can discover skills via its native directory.  The link is only
+   * created once; if it already exists no action is taken.
+   */
+  private _ensureSkillsSymlink(): void {
+    const linkPath = join(config.paths.agents_home, "skills");
+    try {
+      try {
+        lstatSync(linkPath);
+      try {
+      } catch (e: any) {
+        if (e?.code !== "ENOENT") {
+          throw e;
+        }
+        // Path truly does not exist; fall through to create it.
+        lstatSync(linkPath);
+        return;
+      } catch (e: any) {
+        if (e?.code !== "ENOENT") {
+          throw e;
+        }
+        // Path truly does not exist; fall through to create it.
+      }
+      mkdirSync(config.paths.agents_home, { recursive: true });
+      symlinkSync(config.paths.skills, linkPath, "dir");
+      logger.info("Created symlink .agents/skills → .claude/skills");
+    } catch (err) {
+      logger.warn({ err }, "Failed to create .agents/skills symlink");
     }
   }
 
