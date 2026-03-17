@@ -146,9 +146,9 @@ Use the following template. All section titles and product/repo/news names MUST 
 Language: Chinese (full-width punctuation: ，、：！？。）for prose; English for product names, repo names, and technical terms.
 
 ```markdown
-# 📡 Pulse | {🌅 or 🌆} — {YYYY年M月D日}
+# <font color="orange">📡 Pulse | {🌅 or 🌆} — {YYYY年M月D日}</font>
 
-## <font color="red">🚀 Product Hunts</font>
+## <font color="orange">🚀 Product Hunts</font>
 
 - **[Product Name](https://www.producthunt.com/posts/slug)** {upvotes if available}
 简短介绍与点评（简体中文）。
@@ -160,7 +160,7 @@ Language: Chinese (full-width punctuation: ，、：！？。）for prose; Engli
 
 ---
 
-## <font color="red">🔥 GitHub Trending</font>
+## <font color="orange">🔥 GitHub Trending</font>
 
 - **[owner/repo](https://github.com/owner/repo)** ⭐ {total stars} (+{today})
 Description。{Language}。简短点评（简体中文）。
@@ -172,7 +172,7 @@ Description。{Language}。简短点评（简体中文）。
 
 ---
 
-## <font color="red">📰 News</font>
+## <font color="orange">📰 News</font>
 
 - **[Headline](URL)**
 1–2 sentence summary（简体中文）。
@@ -184,10 +184,10 @@ Description。{Language}。简短点评（简体中文）。
 
 ---
 
-## <font color="red">🎙️ Podcasts</font> (If exists updates)
+## <font color="orange">🎙️ Podcasts</font> (If exists updates)
 
-- **[Episode Title](episode_url)** — Podcast Name
-shownotes 摘要（1-2 句简体中文总结）。
+- **[Channel Name - Episode Title](episode_url)** — Podcast Name
+shownotes 摘要（不要原文，1-2 句简体中文重点总结，以及我为什么需要关注）。
 
 - **[Episode Title](episode_url)** — Podcast Name
 ...
@@ -196,15 +196,18 @@ shownotes 摘要（1-2 句简体中文总结）。
 
 ---
 
-## <font color="red">💰 Stock Market</font>
+## <font color="orange">💰 Stock Market</font>
 
 **{公司名} · {市场} {代码}**
 
 - 最新价：<font color='red/green'>**{price} {货币}**</font>
 - 涨跌：{emoji} <font color='red/green'>**{chg:+.2f} / {pct:+.2f}%**</font>
 - 最新交易日：{date}
+> Color red if change is positive, green if negative.
 
 ![BABA 90-Day](chart_path)
+> **Don't forget** to **include the chart image**!
+> The path of the image is in the `chart` field of the `prefetch.stock.BABA` object.
 
 {if_anomaly}
 ⚠️ {abnormal_description}
@@ -213,7 +216,7 @@ shownotes 摘要（1-2 句简体中文总结）。
 
 ---
 
-## <font color="red">🌤️ Weather</font>
+## <font color="orange">🌤️ Weather</font>
 
 **🧱 北京**
 - 今天：{emoji} {type}，{low}°C ~ {high}°C
