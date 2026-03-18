@@ -10,11 +10,11 @@
 
 ![agentara](https://github.com/user-attachments/assets/8f35f630-258a-4640-a976-a9c1e0543f43)
 
-Meet Tara, your 24/7 personal assistant powered by Claude Code. Multi-channel messaging, long-term memory, skills, task scheduling, session management, and more — all running locally.
+Meet Tara, your 24/7 personal assistant powered by Claude Code and OpenAI Codex. Multi-channel messaging, long-term memory, skills, task scheduling, session management, and more — all running locally.
 
 ## Features
 
-- **Agent-powered sessions** — Interact with Claude Code through managed sessions with full streaming support
+- **Agent-powered sessions** — Interact with Claude Code and OpenAI Codex through managed sessions with full streaming support
 - **Multi-channel messaging** — Receive and respond to messages from multiple channels (e.g. Feishu/Lark)
 - **Message streaming** — Streaming response for IM channel (if supported message updating/patching, e.g. Feishu)
 - **Task scheduling** — Queue-based task dispatcher with per-session serial execution and cross-session concurrency
@@ -78,7 +78,9 @@ Meet Tara, your 24/7 personal assistant powered by Claude Code. Multi-channel me
 ## Prerequisites
 
 - [Bun](https://bun.sh) (latest)
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and configured
+- One of the following coding agents:
+  - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and configured
+  - [OpenAI Codex](https://openai.com/api/codex/) installed and configured
 
 ## Quick Start
 
