@@ -50,9 +50,7 @@ export class CodexAgentRunner implements AgentRunner {
 
     const proc = Bun.spawn(args, {
       cwd: options.cwd,
-      env: {
-        ...Bun.env,
-      },
+      env: buildSpawnEnv(Bun.env),
       stderr: "pipe",
     });
 
@@ -68,7 +66,7 @@ export class CodexAgentRunner implements AgentRunner {
 
     let buffer = "";
     let stdoutRaw = "";
-    for await (const chunk of proc.stdout) {
+    for await (const chunk of iterateReadableStream(proc.stdout)) {
       const decoded = decoder.decode(chunk, { stream: true });
       buffer += decoded;
       stdoutRaw += decoded;
@@ -484,5 +482,32 @@ export class CodexAgentRunner implements AgentRunner {
     } catch (err) {
       logger.warn({ err }, "Failed to sync CLAUDE.md → AGENTS.md");
     }
+  }
+}
+
+function buildSpawnEnv(
+  env: Record<string, string | boolean | undefined>,
+): Record<string, string | undefined> {
+  return Object.fromEntries(
+    Object.entries(env).map(([key, value]) => [key, value?.toString()]),
+  );
+}
+
+async function* iterateReadableStream(
+  stream: ReadableStream<Uint8Array>,
+): AsyncIterableIterator<Uint8Array> {
+  const reader = stream.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      if (value) {
+        yield value;
+      }
+    }
+  } finally {
+    reader.releaseLock();
   }
 }
