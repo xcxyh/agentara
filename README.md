@@ -210,6 +210,19 @@ web/                  # React frontend (separate package)
 | `bun run build:bin` | Compile to a standalone binary |
 | `bun run build:js` | Build JS bundle |
 
+## Local 24x7 Deployment
+
+To keep Agentara online on your Mac all day, use the bundled `launchd` setup:
+
+```bash
+bun run build:bin
+cd web && bun run build:js
+cd ..
+./scripts/install-launch-agent.sh
+```
+
+See [docs/local-24x7.md](docs/local-24x7.md) for logs, restart, and removal.
+
 ## Contributing
 
 Contributions are welcome! Here's how to get started:

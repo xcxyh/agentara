@@ -21,26 +21,73 @@ export class ClaudeAgentRunner implements AgentRunner {
     options: AgentRunOptions,
   ): AsyncIterableIterator<SystemMessage | AssistantMessage | ToolMessage> {
     const sessionId = message.session_id;
-    const isNew = options?.isNewSession ?? false;
     const textContentOfUserMessage = JSON.stringify(
       extractTextContent(message),
     );
 
+    const isNew = options?.isNewSession ?? false;
+    const attemptModes: Array<"new" | "resume"> = [isNew ? "new" : "resume"];
+
+    // Recover from a locally persisted session whose Claude-side conversation
+    // was never created (for example when the first launch failed before the
+    // CLI could start). In that case, retry once as a fresh session.
+    if (!isNew) {
+      attemptModes.push("new");
+    }
+
+    let lastError: Error | undefined;
+    for (const mode of attemptModes) {
+      const result = await this._runClaude(mode, sessionId, textContentOfUserMessage, options.cwd);
+
+      for (const parsed of result.messages) {
+        yield parsed;
+      }
+
+      if (!result.error) {
+        return;
+      }
+
+      lastError = result.error;
+      if (
+        mode === "resume" &&
+        this._isMissingConversationError(result.stdoutRaw, result.stderrText)
+      ) {
+        continue;
+      }
+      throw result.error;
+    }
+
+    throw lastError ?? new Error("Claude Code execution failed");
+  }
+
+  private async _runClaude(
+    mode: "new" | "resume",
+    sessionId: string,
+    prompt: string,
+    cwd: string,
+  ): Promise<{
+    messages: Array<SystemMessage | AssistantMessage | ToolMessage>;
+    stdoutRaw: string;
+    stderrText: string;
+    error?: Error;
+  }> {
     const args = [
       "claude",
-      ...(!isNew ? ["--resume", sessionId] : ["--session-id", sessionId]),
+      ...(mode === "resume"
+        ? ["--resume", sessionId]
+        : ["--session-id", sessionId]),
       ...["--model", config.agents.default.model],
       ...["--output-format", "stream-json"],
       "--print",
       "--verbose",
-      textContentOfUserMessage,
+      prompt,
     ];
     const proc = Bun.spawn(args, {
-      cwd: options.cwd,
-      env: {
+      cwd,
+      env: buildSpawnEnv({
         ...Bun.env,
         ANTHROPIC_API_KEY: "",
-      },
+      }),
       stderr: "pipe",
     });
     const decoder = new TextDecoder();
@@ -52,9 +99,10 @@ export class ClaudeAgentRunner implements AgentRunner {
         },
       }),
     );
+    const messages: Array<SystemMessage | AssistantMessage | ToolMessage> = [];
     let buffer = "";
     let stdoutRaw = "";
-    for await (const chunk of proc.stdout) {
+    for await (const chunk of iterateReadableStream(proc.stdout)) {
       const decoded = decoder.decode(chunk, { stream: true });
       buffer += decoded;
       stdoutRaw += decoded;
@@ -64,7 +112,7 @@ export class ClaudeAgentRunner implements AgentRunner {
         if (line.trim()) {
           const parsed = this._parseStreamLine(line.trim(), sessionId);
           if (parsed) {
-            yield parsed;
+            messages.push(parsed);
           }
         }
       }
@@ -72,26 +120,43 @@ export class ClaudeAgentRunner implements AgentRunner {
     if (buffer.trim()) {
       const parsed = this._parseStreamLine(buffer.trim(), sessionId);
       if (parsed) {
-        yield parsed;
+        messages.push(parsed);
       }
     }
     const exitCode = await proc.exited;
     await stderrPipe;
-    if (exitCode !== 0) {
-      const stderrText =
-        stderrChunks.length > 0
-          ? decoder.decode(Bun.concatArrayBuffers(stderrChunks))
-          : "";
-      const parts: string[] = [];
-      if (stdoutRaw.trim()) {
-        parts.push(`Stdout:\n${stdoutRaw.trim()}`);
-      }
-      if (stderrText.trim()) {
-        parts.push(`Stderr:\n${stderrText.trim()}`);
-      }
-      const detail = parts.length > 0 ? `\n\n${parts.join("\n\n")}` : "";
-      throw new Error(`Claude Code exited with code ${exitCode}${detail}`);
+    const stderrText =
+      stderrChunks.length > 0
+        ? decoder.decode(Bun.concatArrayBuffers(stderrChunks))
+        : "";
+
+    if (exitCode === 0) {
+      return { messages, stdoutRaw, stderrText };
     }
+
+    const parts: string[] = [];
+    if (stdoutRaw.trim()) {
+      parts.push(`Stdout:\n${stdoutRaw.trim()}`);
+    }
+    if (stderrText.trim()) {
+      parts.push(`Stderr:\n${stderrText.trim()}`);
+    }
+    const detail = parts.length > 0 ? `\n\n${parts.join("\n\n")}` : "";
+
+    return {
+      messages,
+      stdoutRaw,
+      stderrText,
+      error: new Error(`Claude Code exited with code ${exitCode}${detail}`),
+    };
+  }
+
+  private _isMissingConversationError(
+    stdoutRaw: string,
+    stderrText: string,
+  ): boolean {
+    const combined = `${stdoutRaw}\n${stderrText}`;
+    return combined.includes("No conversation found with session ID");
   }
 
   private _parseStreamLine(
@@ -132,4 +197,31 @@ export class ClaudeAgentRunner implements AgentRunner {
 
 function containsToolResult(message: { content: MessageContent[] }): boolean {
   return message.content.some((content) => content.type === "tool_result");
+}
+
+function buildSpawnEnv(
+  env: Record<string, string | boolean | undefined>,
+): Record<string, string | undefined> {
+  return Object.fromEntries(
+    Object.entries(env).map(([key, value]) => [key, value?.toString()]),
+  );
+}
+
+async function* iterateReadableStream(
+  stream: ReadableStream<Uint8Array>,
+): AsyncIterableIterator<Uint8Array> {
+  const reader = stream.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      if (value) {
+        yield value;
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }

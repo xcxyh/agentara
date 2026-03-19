@@ -14,7 +14,6 @@ import type {
   WriteToolUseMessageContent,
 } from "agentara";
 import {
-  BookIcon,
   BotIcon,
   FileSearchIcon,
   FileTextIcon,
