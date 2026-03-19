@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, normalize } from "node:path";
 
 import type { Server } from "bun";
 import { Hono } from "hono";
@@ -107,9 +107,18 @@ export class HonoServer {
     if (Bun.env.NODE_ENV === "production") {
       const webRoot = join(process.cwd(), "web", "dist");
       if (existsSync(webRoot)) {
-        this._app.use("/*", serveStatic({ root: webRoot }));
-        // SPA fallback: serve index.html for non-API, non-asset routes
-        this._app.get("*", serveStatic({ path: join(webRoot, "index.html") }));
+        this._app.use("/assets/*", serveStatic({ root: "./web/dist" }));
+        this._app.get("/favicon.png", serveStatic({ root: "./web/dist" }));
+        this._app.get("/*", async (c) => {
+          const requestPath = c.req.path === "/" ? "/index.html" : c.req.path;
+          const filePath = normalize(join(webRoot, requestPath));
+
+          if (filePath.startsWith(webRoot) && existsSync(filePath)) {
+            return new Response(Bun.file(filePath));
+          }
+
+          return new Response(Bun.file(join(webRoot, "index.html")));
+        });
       }
     }
   }
