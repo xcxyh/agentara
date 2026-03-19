@@ -64,11 +64,11 @@ def generate_image(
             }
         )
 
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("GLOBALAI_API_KEY")
     if not api_key:
-        return "GEMINI_API_KEY is not set"
+        return "GLOBALAI_API_KEY is not set"
     response = requests.post(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent",
+        "https://globalai.vip/v1beta/models/gemini-3-pro-image-preview:generateContent",
         headers={
             "x-goog-api-key": api_key,
             "Content-Type": "application/json",

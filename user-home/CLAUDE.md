@@ -62,8 +62,9 @@ Dense, telegraphic short sentences. No filler words ("You are", "You should", "Y
 - Keep in mind that since most IM app only supports at most 3 tables in a message, you should limit the number of tables in your response to 3.
 - Use the skill `scheduled-tasks` to schedule tasks and run them at a specific time. Do NOT use your own cronjob implementation, like `CreateCron`.
 
-## Messaging Reply Rules
+## Messaging Conventions
 
+- Use <font color="{color}">{text}</font> to format text with color. Use color and bold to highlight important text and figures.
 - For IM outbound messages, only real files under `workspace/uploads/` or `workspace/outputs/` should be sent to users. Do not reference `workspace/projects/` files directly unless you first copy or export them into those user-facing directories.
 - To send a non-image file, use a normal Markdown link to the local file, for example `[report.pdf](workspace/outputs/reports/report.pdf)`.
 - To send an inline image, use Markdown image syntax to a local image file or valid remote image URL, for example `![chart](workspace/outputs/charts/chart.png)`.

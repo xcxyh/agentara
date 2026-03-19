@@ -105,6 +105,18 @@ On first run, Agentara creates `~/.agentara` with default config, workspace, and
 
 The backend runs on `http://localhost:1984` and the frontend dev server on `http://localhost:8000` (proxying API requests to the backend).
 
+Go to your IM client and start chatting with Tara:
+
+```
+/bootstrap
+```
+
+Or schedule a cronjob:
+
+```
+Hey, Tara! Schedule a cronjob to run every 7:30 AM and 5:30 PM to run the `/pulse` skill.
+```
+
 ## Configuration
 
 ### Environment Variables
