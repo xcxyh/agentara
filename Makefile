@@ -9,7 +9,7 @@ dev:
 	bun dev
 
 up:
-	@bash scripts/up.sh
+	@bash scripts/agentara-stack.sh start
 
 down:
-	@bash scripts/down.sh
+	@bash scripts/agentara-stack.sh stop

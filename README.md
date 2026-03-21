@@ -204,10 +204,13 @@ web/                  # React frontend (separate package)
 | Command | Description |
 |---------|-------------|
 | `bun run dev` | Start backend and frontend in dev mode |
-| `bun run dev:local` | Pause the launchd service, run local backend + frontend, then resume the service on exit |
 | `bun run dev:server` | Start backend only |
-| `bun run dev:server:local` | Pause the launchd service, run the local backend, then resume the service on exit |
 | `bun run dev:web` | Start frontend only |
+| `bun run service:start` | Start backend launchd service and frontend dev server |
+| `bun run service:stop` | Stop backend launchd service and frontend dev server |
+| `bun run service:local` | Stop service mode, then run `bun run dev` |
+| `bun run service:restart` | Restart backend launchd service and frontend dev server |
+| `bun run service:status` | Show backend/frontend service status |
 | `bun run check` | Type-check and lint |
 | `bun run build:bin` | Compile to a standalone binary |
 | `bun run build:js` | Build JS bundle |
@@ -217,10 +220,7 @@ web/                  # React frontend (separate package)
 To keep Agentara online on your Mac all day, use the bundled `launchd` setup:
 
 ```bash
-bun run build:bin
-cd web && bun run build:js
-cd ..
-./scripts/install-launch-agent.sh
+bun run service:start
 ```
 
 See [docs/local-24x7.md](docs/local-24x7.md) for logs, restart, and removal.

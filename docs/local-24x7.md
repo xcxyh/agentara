@@ -7,15 +7,12 @@ Run Agentara as a macOS `launchd` service.
 - Starts Agentara on login
 - Restarts it if it exits
 - Serves the API on `http://0.0.0.0:1984`
-- Serves the built web app from `web/dist` in production mode
+- Starts the frontend Vite dev server on `http://0.0.0.0:8000`
 
 ## Install
 
 ```bash
-bun run build:bin
-cd web && bun run build:js
-cd ..
-./scripts/install-launch-agent.sh
+bun run service:start
 ```
 
 ## Logs
@@ -23,33 +20,35 @@ cd ..
 ```bash
 tail -f .run/launchd/logs/launchd.stdout.log
 tail -f .run/launchd/logs/launchd.stderr.log
+tail -f .run/logs/dev-web.log
 ```
 
 ## Restart
 
 ```bash
-launchctl kickstart -k "gui/$(id -u)/com.agentara.server"
+bun run service:restart
+```
+
+## Status
+
+```bash
+bun run service:status
 ```
 
 ## Pause for local testing
 
-Use these commands when you want to free port `1984` for local development.
+Use this command when you want to stop service mode and run the local stack.
 
 ```bash
-bun run dev:server:local
+bun run service:local
 ```
 
-Or run backend and frontend together:
-
-```bash
-bun run dev:local
-```
-
-These commands pause the `launchd` service first and restore it when the local process exits.
+This command stops the background service first. It does not restore it automatically when the local process exits.
 
 ## Remove
 
 ```bash
+bun run service:stop
 ./scripts/uninstall-launch-agent.sh
 ```
 
@@ -63,4 +62,4 @@ These commands pause the `launchd` service first and restore it when the local p
 
 - `launchd` starts after user login
 - If you want remote access, pair this with Tailscale or a tunnel
-- Re-run the install script after changing the plist template
+- Re-run `bun run service:start` after changing the plist template
