@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 
-import { createLogger } from "@/shared";
+import { kernel } from "@/kernel";
+import { config, createLogger } from "@/shared";
 
 const logger = createLogger("usage");
 
@@ -77,15 +78,33 @@ async function queryClaudeUsage() {
 /**
  * Usage route group. Serves Claude usage / credentials data.
  */
-export const usageRoutes = new Hono().get("/claude", async (c) => {
-  try {
-    const usage = await queryClaudeUsage();
-    return c.json({ usage });
-  } catch (err) {
-    logger.error({ err }, "failed to read Claude usage");
-    return c.json(
-      { error: err instanceof Error ? err.message : "unknown error" },
-      500,
-    );
-  }
-});
+export const usageRoutes = new Hono()
+  .get("/runner", (c) => {
+    return c.json({
+      runner_type: config.agents.default.type,
+    });
+  })
+  .get("/claude", async (c) => {
+    try {
+      const usage = await queryClaudeUsage();
+      return c.json({ usage });
+    } catch (err) {
+      logger.error({ err }, "failed to read Claude usage");
+      return c.json(
+        { error: err instanceof Error ? err.message : "unknown error" },
+        500,
+      );
+    }
+  })
+  .get("/codex", (c) => {
+    try {
+      const usage = kernel.sessionManager.queryCodexUsageSummary();
+      return c.json({ usage });
+    } catch (err) {
+      logger.error({ err }, "failed to read Codex usage");
+      return c.json(
+        { error: err instanceof Error ? err.message : "unknown error" },
+        500,
+      );
+    }
+  });

@@ -1,11 +1,12 @@
 import { z } from "zod";
 
-import type {
+import {
   AssistantMessage,
   SystemMessage,
   ToolMessage,
-  UserMessage,
+  type UserMessage,
 } from "../messaging";
+import { CodexUsageRecord } from "../usage";
 
 /**
  * The options for the agent runner.
@@ -29,6 +30,29 @@ export const AgentRunOptions = z.object({
 export interface AgentRunOptions extends z.infer<typeof AgentRunOptions> {}
 
 /**
+ * A streamed agent event carrying a normal message.
+ */
+export const AgentMessageEvent = z.object({
+  type: z.literal("message"),
+  message: z.union([SystemMessage, AssistantMessage, ToolMessage]),
+});
+export interface AgentMessageEvent extends z.infer<typeof AgentMessageEvent> {}
+
+/**
+ * A streamed agent event carrying token usage.
+ */
+export const AgentUsageEvent = z.object({
+  type: z.literal("usage"),
+  usage: CodexUsageRecord.omit({ id: true, created_at: true }),
+});
+export interface AgentUsageEvent extends z.infer<typeof AgentUsageEvent> {}
+
+/**
+ * Streamed events produced by agent runners.
+ */
+export type AgentRunnerEvent = AgentMessageEvent | AgentUsageEvent;
+
+/**
  * A wrapper of the real agent behind.
  * Used to interact with Agent, supporting streaming output
  */
@@ -46,5 +70,5 @@ export interface AgentRunner {
     userMessage: UserMessage,
     // eslint-disable-next-line no-unused-vars
     options: AgentRunOptions,
-  ): AsyncIterableIterator<SystemMessage | AssistantMessage | ToolMessage>;
+  ): AsyncIterableIterator<AgentRunnerEvent>;
 }

@@ -71,6 +71,13 @@
       "when": 1773500000000,
       "tag": "0009_blue_proteus",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1774000000000,
+      "tag": "0010_codex_usage_records",
+      "breakpoints": true
     }
   ]
 }

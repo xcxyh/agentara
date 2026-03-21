@@ -1,7 +1,5 @@
 import {
   type AssistantMessage,
-  type ToolMessage,
-  type SystemMessage,
   type UserMessage,
   extractTextContent,
 } from "../messaging";
@@ -18,18 +16,21 @@ export class DummyAgentRunner implements AgentRunner {
 
   async *stream(
     userMessage: UserMessage,
-  ): AsyncIterableIterator<SystemMessage | AssistantMessage | ToolMessage> {
+  ): AsyncIterableIterator<{ type: "message"; message: AssistantMessage }> {
     await Bun.sleep(500);
     yield {
-      id: userMessage.id,
-      session_id: userMessage.session_id,
-      role: "assistant",
-      content: [
-        {
-          type: "text",
-          text: extractTextContent(userMessage),
-        },
-      ],
+      type: "message",
+      message: {
+        id: userMessage.id,
+        session_id: userMessage.session_id,
+        role: "assistant",
+        content: [
+          {
+            type: "text",
+            text: extractTextContent(userMessage),
+          },
+        ],
+      },
     };
   }
 }

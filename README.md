@@ -204,7 +204,9 @@ web/                  # React frontend (separate package)
 | Command | Description |
 |---------|-------------|
 | `bun run dev` | Start backend and frontend in dev mode |
+| `bun run dev:local` | Pause the launchd service, run local backend + frontend, then resume the service on exit |
 | `bun run dev:server` | Start backend only |
+| `bun run dev:server:local` | Pause the launchd service, run the local backend, then resume the service on exit |
 | `bun run dev:web` | Start frontend only |
 | `bun run check` | Type-check and lint |
 | `bun run build:bin` | Compile to a standalone binary |

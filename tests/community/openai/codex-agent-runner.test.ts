@@ -14,6 +14,16 @@ function parse(line: string) {
   return runner._parseStreamLine(line, SESSION_ID);
 }
 
+function parseMessages(line: string) {
+  return parse(line)
+    .filter((event) => event.type === "message")
+    .map((event) => event.message);
+}
+
+function parseUsage(line: string) {
+  return parse(line).filter((event) => event.type === "usage");
+}
+
 afterEach(() => {
   while (tempDirs.length > 0) {
     rmSync(tempDirs.pop()!, { recursive: true, force: true });
@@ -26,7 +36,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
       type: "thread.started",
       thread_id: "thread-abc",
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({
       id: "thread-abc",
@@ -41,7 +51,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
       type: "item.completed",
       item: { id: "msg-1", type: "agent_message", text: "Hello world" },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({
       id: "msg-1",
@@ -56,7 +66,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
       type: "item.started",
       item: { id: "msg-1", type: "agent_message", text: "" },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(0);
   });
 
@@ -65,7 +75,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
       type: "item.completed",
       item: { id: "r-1", type: "reasoning", text: "Let me think about this..." },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({
       id: "r-1",
@@ -87,7 +97,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
         status: "in_progress",
       },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({
       id: "cmd-1",
@@ -116,7 +126,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
         status: "completed",
       },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({
       id: "cmd-1-result",
@@ -145,7 +155,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
         status: "completed",
       },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(2);
     expect(msgs[0]).toMatchObject({
       id: "fc-1",
@@ -186,7 +196,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
         status: "in_progress",
       },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({
       id: "mcp-1",
@@ -216,7 +226,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
         status: "completed",
       },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({
       id: "mcp-1-result",
@@ -244,7 +254,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
         action: "search",
       },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(2);
     expect(msgs[0]).toMatchObject({
       id: "ws-1",
@@ -282,7 +292,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
         search_query: "OpenAI API docs",
       },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(2);
     expect(msgs[0]).toMatchObject({
       id: "ws-2",
@@ -308,7 +318,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
         query: "",
       },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(0);
   });
 
@@ -317,7 +327,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
       type: "turn.failed",
       error: { message: "Rate limit exceeded" },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({
       session_id: SESSION_ID,
@@ -331,7 +341,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
       type: "error",
       message: "Connection lost",
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({
       session_id: SESSION_ID,
@@ -346,13 +356,25 @@ describe("CodexAgentRunner._parseStreamLine", () => {
     expect(msgs).toHaveLength(0);
   });
 
-  test("returns empty array for turn.completed", () => {
+  test("returns usage event for turn.completed", () => {
     const line = JSON.stringify({
       type: "turn.completed",
+      thread_id: "codex-thread-1",
       usage: { input_tokens: 100, cached_input_tokens: 0, output_tokens: 50 },
     });
-    const msgs = parse(line);
-    expect(msgs).toHaveLength(0);
+    const events = parseUsage(line);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: "usage",
+      usage: {
+        agent_type: "codex",
+        session_id: SESSION_ID,
+        runner_session_id: "codex-thread-1",
+        input_tokens: 100,
+        cached_input_tokens: 0,
+        output_tokens: 50,
+      },
+    });
   });
 
   test("returns empty array for invalid JSON", () => {
@@ -362,7 +384,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
 
   test("returns empty array for unknown event type", () => {
     const line = JSON.stringify({ type: "custom.unknown" });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(0);
   });
 
@@ -371,7 +393,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
       type: "item.completed",
       item: { id: "x-1", type: "unknown_type" },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(0);
   });
 
@@ -380,7 +402,7 @@ describe("CodexAgentRunner._parseStreamLine", () => {
       type: "item.completed",
       item: { id: "err-1", type: "error", message: "Something went wrong" },
     });
-    const msgs = parse(line);
+    const msgs = parseMessages(line);
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({
       id: "err-1",

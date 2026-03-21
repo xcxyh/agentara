@@ -31,6 +31,22 @@ tail -f .run/launchd/logs/launchd.stderr.log
 launchctl kickstart -k "gui/$(id -u)/com.agentara.server"
 ```
 
+## Pause for local testing
+
+Use these commands when you want to free port `1984` for local development.
+
+```bash
+bun run dev:server:local
+```
+
+Or run backend and frontend together:
+
+```bash
+bun run dev:local
+```
+
+These commands pause the `launchd` service first and restore it when the local process exits.
+
 ## Remove
 
 ```bash

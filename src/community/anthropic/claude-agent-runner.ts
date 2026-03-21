@@ -2,11 +2,12 @@ import {
   config,
   extractTextContent,
   type MessageContent,
-  type ToolMessage,
+  type AgentRunnerEvent,
   type AgentRunner,
   type AgentRunOptions,
   type AssistantMessage,
   type SystemMessage,
+  type ToolMessage,
   type UserMessage,
 } from "@/shared";
 
@@ -19,7 +20,7 @@ export class ClaudeAgentRunner implements AgentRunner {
   async *stream(
     message: UserMessage,
     options: AgentRunOptions,
-  ): AsyncIterableIterator<SystemMessage | AssistantMessage | ToolMessage> {
+  ): AsyncIterableIterator<AgentRunnerEvent> {
     const sessionId = message.session_id;
     const textContentOfUserMessage = JSON.stringify(
       extractTextContent(message),
@@ -40,7 +41,7 @@ export class ClaudeAgentRunner implements AgentRunner {
       const result = await this._runClaude(mode, sessionId, textContentOfUserMessage, options.cwd);
 
       for (const parsed of result.messages) {
-        yield parsed;
+        yield { type: "message", message: parsed };
       }
 
       if (!result.error) {

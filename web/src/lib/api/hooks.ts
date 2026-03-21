@@ -279,10 +279,26 @@ export interface ClaudeUsage {
   };
 }
 
+export interface CodexUsageTotals {
+  input_tokens: number;
+  cached_input_tokens: number;
+  output_tokens: number;
+}
+
+export interface CodexUsageSummary {
+  lifetime: CodexUsageTotals;
+  recent_7d: CodexUsageTotals;
+  last_updated_at: number | null;
+}
+
+export interface CurrentUsageRunner {
+  runner_type: string;
+}
+
 /**
  * Fetches Claude usage data from /api/usage/claude.
  */
-export function useClaudeUsage() {
+export function useClaudeUsage(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["usage", "claude"],
     queryFn: async () => {
@@ -297,5 +313,52 @@ export function useClaudeUsage() {
       if (!json.usage) throw new Error("Invalid usage response");
       return json.usage;
     },
+    enabled: options?.enabled,
+  });
+}
+
+/**
+ * Fetches the current configured runner type from /api/usage/runner.
+ */
+export function useCurrentUsageRunner() {
+  return useQuery({
+    queryKey: ["usage", "runner"],
+    queryFn: async () => {
+      const res = await api.usage.runner.$get();
+      const json = (await res.json()) as Partial<CurrentUsageRunner> & {
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(json.error ?? "Failed to fetch current runner");
+      }
+      if (!json.runner_type) {
+        throw new Error("Invalid runner response");
+      }
+      return {
+        runner_type: json.runner_type,
+      };
+    },
+  });
+}
+
+/**
+ * Fetches Codex usage data from /api/usage/codex.
+ */
+export function useCodexUsage(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["usage", "codex"],
+    queryFn: async () => {
+      const res = await api.usage.codex.$get();
+      const json = (await res.json()) as {
+        usage?: CodexUsageSummary;
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(json.error ?? "Failed to fetch usage");
+      }
+      if (!json.usage) throw new Error("Invalid usage response");
+      return json.usage;
+    },
+    enabled: options?.enabled,
   });
 }

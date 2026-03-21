@@ -1,8 +1,8 @@
-import type { Message } from "../messaging";
-import {
-  type AssistantMessage,
-  type ToolMessage,
-  type SystemMessage,
+import type {
+  AssistantMessage,
+  Message,
+  SystemMessage,
+  ToolMessage,
 } from "../messaging";
 
 import type { AgentRunner } from "./agent-runner";
@@ -27,14 +27,18 @@ export class MockAgentRunner implements AgentRunner {
     this._messages = jsonl.split("\n").map((line) => JSON.parse(line));
   }
 
-  async *stream(): AsyncIterableIterator<
-    SystemMessage | AssistantMessage | ToolMessage
-  > {
+  async *stream(): AsyncIterableIterator<{
+    type: "message";
+    message: SystemMessage | AssistantMessage | ToolMessage;
+  }> {
     await this._loadMessages();
     for (const message of this._messages) {
       if (message.role !== "user") {
         await Bun.sleep(this.options.delay);
-        yield message as SystemMessage | AssistantMessage | ToolMessage;
+        yield {
+          type: "message",
+          message: message as SystemMessage | AssistantMessage | ToolMessage,
+        };
       }
     }
   }

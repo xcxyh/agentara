@@ -1,6 +1,7 @@
 import EventEmitter from "eventemitter3";
 
 import type {
+  AgentUsageEvent,
   AgentRunOptions,
   AssistantMessage,
   Message,
@@ -14,6 +15,8 @@ import { createAgentRunner } from "../agents";
 export interface SessionEventTypes {
   // eslint-disable-next-line no-unused-vars
   message: (message: Message) => void;
+  // eslint-disable-next-line no-unused-vars
+  usage: (usage: AgentUsageEvent["usage"]) => void;
 }
 
 /**
@@ -57,9 +60,13 @@ export class Session extends EventEmitter {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     async function* wrappedStream() {
-      for await (const message of await rawStream) {
-        self.emit("message", message);
-        yield message;
+      for await (const event of await rawStream) {
+        if (event.type === "message") {
+          self.emit("message", event.message);
+          yield event.message;
+          continue;
+        }
+        self.emit("usage", event.usage);
       }
     }
     return wrappedStream();

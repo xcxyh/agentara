@@ -7,11 +7,9 @@ import {
   extractTextContent,
   resolveInstructionFile,
   uuid,
-  type ToolMessage,
+  type AgentRunnerEvent,
   type AgentRunner,
   type AgentRunOptions,
-  type AssistantMessage,
-  type SystemMessage,
   type UserMessage,
 } from "@/shared";
 
@@ -30,7 +28,7 @@ export class CodexAgentRunner implements AgentRunner {
   async *stream(
     message: UserMessage,
     options: AgentRunOptions,
-  ): AsyncIterableIterator<SystemMessage | AssistantMessage | ToolMessage> {
+  ): AsyncIterableIterator<AgentRunnerEvent> {
     const sessionId = message.session_id;
     const isNew = options?.isNewSession ?? false;
     const resumeId = options.runnerSessionId ?? sessionId;
@@ -75,8 +73,8 @@ export class CodexAgentRunner implements AgentRunner {
       for (const line of lines) {
         if (line.trim()) {
           const messages = this._parseStreamLine(line.trim(), sessionId);
-          for (const msg of messages) {
-            yield msg;
+          for (const event of messages) {
+            yield event;
           }
         }
       }
@@ -84,8 +82,8 @@ export class CodexAgentRunner implements AgentRunner {
 
     if (buffer.trim()) {
       const messages = this._parseStreamLine(buffer.trim(), sessionId);
-      for (const msg of messages) {
-        yield msg;
+      for (const event of messages) {
+        yield event;
       }
     }
 
@@ -115,7 +113,7 @@ export class CodexAgentRunner implements AgentRunner {
   _parseStreamLine(
     line: string,
     sessionId: string,
-  ): Array<AssistantMessage | ToolMessage | SystemMessage> {
+  ): AgentRunnerEvent[] {
     try {
       const obj = JSON.parse(line);
       return this._mapEvent(obj, sessionId);
@@ -128,7 +126,7 @@ export class CodexAgentRunner implements AgentRunner {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     event: any,
     sessionId: string,
-  ): Array<AssistantMessage | ToolMessage | SystemMessage> {
+  ): AgentRunnerEvent[] {
     const type: string | undefined = event?.type;
     if (!type) return [];
 
@@ -137,12 +135,19 @@ export class CodexAgentRunner implements AgentRunner {
         const threadId: string = event.thread_id ?? sessionId;
         return [
           {
-            id: threadId,
-            session_id: sessionId,
-            role: "system" as const,
-            subtype: "init",
+            type: "message",
+            message: {
+              id: threadId,
+              session_id: sessionId,
+              role: "system" as const,
+              subtype: "init",
+            },
           },
         ];
+      }
+
+      case "turn.completed": {
+        return this._mapTurnCompletedEvent(event, sessionId);
       }
 
       case "item.started":
@@ -155,10 +160,13 @@ export class CodexAgentRunner implements AgentRunner {
         const errorMsg = event.error?.message ?? "Unknown turn failure";
         return [
           {
-            id: uuid(),
-            session_id: sessionId,
-            role: "assistant" as const,
-            content: [{ type: "text" as const, text: `Error: ${errorMsg}` }],
+            type: "message",
+            message: {
+              id: uuid(),
+              session_id: sessionId,
+              role: "assistant" as const,
+              content: [{ type: "text" as const, text: `Error: ${errorMsg}` }],
+            },
           },
         ];
       }
@@ -167,10 +175,13 @@ export class CodexAgentRunner implements AgentRunner {
         const errorMsg = event.message ?? "Unknown stream error";
         return [
           {
-            id: uuid(),
-            session_id: sessionId,
-            role: "assistant" as const,
-            content: [{ type: "text" as const, text: `Error: ${errorMsg}` }],
+            type: "message",
+            message: {
+              id: uuid(),
+              session_id: sessionId,
+              role: "assistant" as const,
+              content: [{ type: "text" as const, text: `Error: ${errorMsg}` }],
+            },
           },
         ];
       }
@@ -184,7 +195,7 @@ export class CodexAgentRunner implements AgentRunner {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     event: any,
     sessionId: string,
-  ): Array<AssistantMessage | ToolMessage | SystemMessage> {
+  ): AgentRunnerEvent[] {
     const item = event.item;
     if (!item) return [];
 
@@ -197,10 +208,13 @@ export class CodexAgentRunner implements AgentRunner {
         if (eventType !== "item.completed") return [];
         return [
           {
-            id: itemId,
-            session_id: sessionId,
-            role: "assistant" as const,
-            content: [{ type: "text" as const, text: item.text ?? "" }],
+            type: "message",
+            message: {
+              id: itemId,
+              session_id: sessionId,
+              role: "assistant" as const,
+              content: [{ type: "text" as const, text: item.text ?? "" }],
+            },
           },
         ];
       }
@@ -209,12 +223,15 @@ export class CodexAgentRunner implements AgentRunner {
         if (eventType !== "item.completed") return [];
         return [
           {
-            id: itemId,
-            session_id: sessionId,
-            role: "assistant" as const,
-            content: [
-              { type: "thinking" as const, thinking: item.text ?? "" },
-            ],
+            type: "message",
+            message: {
+              id: itemId,
+              session_id: sessionId,
+              role: "assistant" as const,
+              content: [
+                { type: "thinking" as const, thinking: item.text ?? "" },
+              ],
+            },
           },
         ];
       }
@@ -223,33 +240,39 @@ export class CodexAgentRunner implements AgentRunner {
         if (eventType === "item.started") {
           return [
             {
-              id: itemId,
-              session_id: sessionId,
-              role: "assistant" as const,
-              content: [
-                {
-                  type: "tool_use" as const,
-                  name: "Bash",
-                  id: itemId,
-                  input: { command: item.command ?? "" },
-                },
-              ],
+              type: "message",
+              message: {
+                id: itemId,
+                session_id: sessionId,
+                role: "assistant" as const,
+                content: [
+                  {
+                    type: "tool_use" as const,
+                    name: "Bash",
+                    id: itemId,
+                    input: { command: item.command ?? "" },
+                  },
+                ],
+              },
             },
           ];
         }
         if (eventType === "item.completed") {
           return [
             {
-              id: `${itemId}-result`,
-              session_id: sessionId,
-              role: "tool" as const,
-              content: [
-                {
-                  type: "tool_result" as const,
-                  tool_use_id: itemId,
-                  content: item.aggregated_output ?? "",
-                },
-              ],
+              type: "message",
+              message: {
+                id: `${itemId}-result`,
+                session_id: sessionId,
+                role: "tool" as const,
+                content: [
+                  {
+                    type: "tool_result" as const,
+                    tool_use_id: itemId,
+                    content: item.aggregated_output ?? "",
+                  },
+                ],
+              },
             },
           ];
         }
@@ -263,32 +286,38 @@ export class CodexAgentRunner implements AgentRunner {
         const filePath = this._formatFileChangePath(changes);
         return [
           {
-            id: itemId,
-            session_id: sessionId,
-            role: "assistant" as const,
-            content: [
-              {
-                type: "tool_use" as const,
-                name: "Edit",
-                id: itemId,
-                input: { file_path: filePath },
-              },
-            ],
+            type: "message",
+            message: {
+              id: itemId,
+              session_id: sessionId,
+              role: "assistant" as const,
+              content: [
+                {
+                  type: "tool_use" as const,
+                  name: "Edit",
+                  id: itemId,
+                  input: { file_path: filePath },
+                },
+              ],
+            },
           },
           {
-            id: `${itemId}-result`,
-            session_id: sessionId,
-            role: "tool" as const,
-            content: [
-              {
-                type: "tool_result" as const,
-                tool_use_id: itemId,
-                content:
-                  item.status === "completed"
-                    ? "File changes applied successfully"
-                    : `File changes ${item.status ?? "unknown"}`,
-              },
-            ],
+            type: "message",
+            message: {
+              id: `${itemId}-result`,
+              session_id: sessionId,
+              role: "tool" as const,
+              content: [
+                {
+                  type: "tool_result" as const,
+                  tool_use_id: itemId,
+                  content:
+                    item.status === "completed"
+                      ? "File changes applied successfully"
+                      : `File changes ${item.status ?? "unknown"}`,
+                },
+              ],
+            },
           },
         ];
       }
@@ -297,17 +326,20 @@ export class CodexAgentRunner implements AgentRunner {
         if (eventType === "item.started") {
           return [
             {
-              id: itemId,
-              session_id: sessionId,
-              role: "assistant" as const,
-              content: [
-                {
-                  type: "tool_use" as const,
-                  name: `${item.server ?? "mcp"}__${item.tool ?? "unknown"}`,
-                  id: itemId,
-                  input: item.arguments ?? {},
-                },
-              ],
+              type: "message",
+              message: {
+                id: itemId,
+                session_id: sessionId,
+                role: "assistant" as const,
+                content: [
+                  {
+                    type: "tool_use" as const,
+                    name: `${item.server ?? "mcp"}__${item.tool ?? "unknown"}`,
+                    id: itemId,
+                    input: item.arguments ?? {},
+                  },
+                ],
+              },
             },
           ];
         }
@@ -317,16 +349,19 @@ export class CodexAgentRunner implements AgentRunner {
             : item.error?.message ?? "";
           return [
             {
-              id: `${itemId}-result`,
-              session_id: sessionId,
-              role: "tool" as const,
-              content: [
-                {
-                  type: "tool_result" as const,
-                  tool_use_id: itemId,
-                  content: resultText,
-                },
-              ],
+              type: "message",
+              message: {
+                id: `${itemId}-result`,
+                session_id: sessionId,
+                role: "tool" as const,
+                content: [
+                  {
+                    type: "tool_result" as const,
+                    tool_use_id: itemId,
+                    content: resultText,
+                  },
+                ],
+              },
             },
           ];
         }
@@ -341,29 +376,35 @@ export class CodexAgentRunner implements AgentRunner {
         }
         return [
           {
-            id: itemId,
-            session_id: sessionId,
-            role: "assistant" as const,
-            content: [
-              {
-                type: "tool_use" as const,
-                name: "WebSearch",
-                id: itemId,
-                input: { query },
-              },
-            ],
+            type: "message",
+            message: {
+              id: itemId,
+              session_id: sessionId,
+              role: "assistant" as const,
+              content: [
+                {
+                  type: "tool_use" as const,
+                  name: "WebSearch",
+                  id: itemId,
+                  input: { query },
+                },
+              ],
+            },
           },
           {
-            id: `${itemId}-result`,
-            session_id: sessionId,
-            role: "tool" as const,
-            content: [
-              {
-                type: "tool_result" as const,
-                tool_use_id: itemId,
-                content: `Web search completed for: ${query}`,
-              },
-            ],
+            type: "message",
+            message: {
+              id: `${itemId}-result`,
+              session_id: sessionId,
+              role: "tool" as const,
+              content: [
+                {
+                  type: "tool_result" as const,
+                  tool_use_id: itemId,
+                  content: `Web search completed for: ${query}`,
+                },
+              ],
+            },
           },
         ];
       }
@@ -371,15 +412,18 @@ export class CodexAgentRunner implements AgentRunner {
       case "error": {
         return [
           {
-            id: itemId,
-            session_id: sessionId,
-            role: "assistant" as const,
-            content: [
-              {
-                type: "text" as const,
-                text: `Error: ${item.message ?? "Unknown error"}`,
-              },
-            ],
+            type: "message",
+            message: {
+              id: itemId,
+              session_id: sessionId,
+              role: "assistant" as const,
+              content: [
+                {
+                  type: "text" as const,
+                  text: `Error: ${item.message ?? "Unknown error"}`,
+                },
+              ],
+            },
           },
         ];
       }
@@ -387,6 +431,31 @@ export class CodexAgentRunner implements AgentRunner {
       default:
         return [];
     }
+  }
+
+  private _mapTurnCompletedEvent(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    event: any,
+    sessionId: string,
+  ): AgentRunnerEvent[] {
+    const usage = event?.usage;
+    if (!usage) {
+      return [];
+    }
+
+    return [
+      {
+        type: "usage",
+        usage: {
+          agent_type: "codex",
+          session_id: sessionId,
+          runner_session_id: event.thread_id ?? null,
+          input_tokens: usage.input_tokens ?? 0,
+          cached_input_tokens: usage.cached_input_tokens ?? 0,
+          output_tokens: usage.output_tokens ?? 0,
+        },
+      },
+    ];
   }
 
   private _formatFileChangePath(

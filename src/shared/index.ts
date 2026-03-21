@@ -6,4 +6,5 @@ export * from "./messaging";
 export * from "./sessioning";
 export * from "./skills";
 export * from "./tasking";
+export * from "./usage";
 export * from "./utils";

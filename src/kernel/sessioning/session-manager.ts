@@ -1,12 +1,19 @@
 import { existsSync, unlinkSync } from "node:fs";
 
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, gte, sql } from "drizzle-orm";
 
 import type { DrizzleDB } from "@/data";
-import { config, createLogger, extractTextContent, uuid } from "@/shared";
+import {
+  config,
+  createLogger,
+  extractTextContent,
+  uuid,
+  type CodexUsageRecord,
+  type CodexUsageSummary,
+} from "@/shared";
 import type { Session as SessionEntity, UserMessage } from "@/shared";
 
-import { sessions } from "./data";
+import { agent_usage_records, sessions } from "./data";
 import { Session } from "./session";
 import {
   SessionDailyLogWriter,
@@ -194,6 +201,21 @@ export class SessionManager {
   }
 
   /**
+   * Returns aggregated Codex token usage for lifetime and the last 7 days.
+   */
+  queryCodexUsageSummary(): CodexUsageSummary {
+    const recentThreshold = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const lifetime = this._queryCodexUsageTotals();
+    const recent7d = this._queryCodexUsageTotals(recentThreshold);
+
+    return {
+      lifetime,
+      recent_7d: recent7d,
+      last_updated_at: lifetime.last_updated_at,
+    };
+  }
+
+  /**
    * Removes a session: deletes the database record and the associated JSONL file.
    * @param sessionId - The session identifier.
    * @throws SessionNotFoundError if the session does not exist.
@@ -272,6 +294,62 @@ export class SessionManager {
       this._diaryWriter.write(message);
       this._updateLastMessageCreatedAt(sessionId);
     });
+    session.on("usage", (usage) => {
+      this._insertUsageRecord(usage);
+    });
+  }
+
+  private _insertUsageRecord(
+    usage: Omit<CodexUsageRecord, "id" | "created_at">,
+  ): void {
+    this._db
+      .insert(agent_usage_records)
+      .values({
+        id: uuid(),
+        agent_type: usage.agent_type,
+        session_id: usage.session_id,
+        runner_session_id: usage.runner_session_id ?? null,
+        input_tokens: usage.input_tokens,
+        cached_input_tokens: usage.cached_input_tokens,
+        output_tokens: usage.output_tokens,
+        created_at: Date.now(),
+      })
+      .run();
+  }
+
+  private _queryCodexUsageTotals(createdAtGte?: number): {
+    input_tokens: number;
+    cached_input_tokens: number;
+    output_tokens: number;
+    last_updated_at: number | null;
+  } {
+    const row = this._db
+      .select({
+        input_tokens:
+          sql<number>`coalesce(sum(${agent_usage_records.input_tokens}), 0)`,
+        cached_input_tokens:
+          sql<number>`coalesce(sum(${agent_usage_records.cached_input_tokens}), 0)`,
+        output_tokens:
+          sql<number>`coalesce(sum(${agent_usage_records.output_tokens}), 0)`,
+        last_updated_at: sql<number | null>`max(${agent_usage_records.created_at})`,
+      })
+      .from(agent_usage_records)
+      .where(
+        createdAtGte === undefined
+          ? eq(agent_usage_records.agent_type, "codex")
+          : and(
+              eq(agent_usage_records.agent_type, "codex"),
+              gte(agent_usage_records.created_at, createdAtGte),
+            ),
+      )
+      .get();
+
+    return {
+      input_tokens: row?.input_tokens ?? 0,
+      cached_input_tokens: row?.cached_input_tokens ?? 0,
+      output_tokens: row?.output_tokens ?? 0,
+      last_updated_at: row?.last_updated_at ?? null,
+    };
   }
 }
 
