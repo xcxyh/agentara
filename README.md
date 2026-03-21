@@ -211,6 +211,7 @@ web/                  # React frontend (separate package)
 | `bun run service:local` | Stop service mode, then run `bun run dev` |
 | `bun run service:restart` | Restart backend launchd service and frontend dev server |
 | `bun run service:status` | Show backend/frontend service status |
+| `bun run service:uninstall` | Stop service mode and remove the launch agent |
 | `bun run check` | Type-check and lint |
 | `bun run build:bin` | Compile to a standalone binary |
 | `bun run build:js` | Build JS bundle |

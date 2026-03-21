@@ -87,6 +87,18 @@ stop_backend_service() {
   wait_for_port_release "$BACKEND_PORT"
 }
 
+uninstall_backend_service() {
+  stop_backend_service || true
+
+  if [ -f "$PLIST_TARGET" ]; then
+    rm -f "$PLIST_TARGET"
+    echo "Removed launch agent: $PLIST_TARGET"
+    return 0
+  fi
+
+  echo "Launch agent not installed: $PLIST_TARGET"
+}
+
 read_frontend_pid() {
   if [ ! -f "$FRONTEND_PID_FILE" ]; then
     return 1
@@ -210,6 +222,11 @@ stop_stack() {
   stop_frontend
 }
 
+uninstall_stack() {
+  stop_stack
+  uninstall_backend_service
+}
+
 run_local() {
   stop_stack
   wait_for_port_release "$BACKEND_PORT"
@@ -248,6 +265,7 @@ Commands:
   restart  Restart backend service and frontend dev server
   local    Stop service mode and run bun run dev in foreground
   status   Show backend/frontend status
+  uninstall Stop service mode and remove the launch agent
 EOF
 }
 
@@ -272,6 +290,9 @@ case "${1:-}" in
     ;;
   status)
     print_status
+    ;;
+  uninstall)
+    uninstall_stack
     ;;
   *)
     usage >&2

@@ -18,6 +18,7 @@
     "service:restart": "bash ./scripts/agentara-stack.sh restart",
     "service:local": "bash ./scripts/agentara-stack.sh local",
     "service:status": "bash ./scripts/agentara-stack.sh status",
+    "service:uninstall": "bash ./scripts/agentara-stack.sh uninstall",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "prepare": "husky"

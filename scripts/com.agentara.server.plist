@@ -23,9 +23,7 @@
     <key>EnvironmentVariables</key>
     <dict>
       <key>PATH</key>
-      <string>/Users/xiongmac/.bun/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
-      <key>BUN_BIN</key>
-      <string>/Users/xiongmac/.bun/bin/bun</string>
+      <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
       <key>NODE_ENV</key>
       <string>production</string>
       <key>AGENTARA_SERVICE_HOST</key>

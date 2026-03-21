@@ -48,8 +48,7 @@ This command stops the background service first. It does not restore it automati
 ## Remove
 
 ```bash
-bun run service:stop
-./scripts/uninstall-launch-agent.sh
+bun run service:uninstall
 ```
 
 ## Keep the Mac awake

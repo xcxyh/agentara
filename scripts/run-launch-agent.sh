@@ -22,6 +22,7 @@ add_to_path() {
 for nvm_bin in "$HOME"/.nvm/versions/node/*/bin; do
   add_to_path "$nvm_bin"
 done
+add_to_path "$HOME/.bun/bin"
 add_to_path "/opt/homebrew/bin"
 add_to_path "/usr/local/bin"
 export PATH
