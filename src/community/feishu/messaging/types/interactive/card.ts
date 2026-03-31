@@ -6,6 +6,7 @@ export interface CardConfig {
   use_custom_translation?: boolean;
   enable_forward?: boolean;
   enable_forward_interaction?: boolean;
+  update_multi?: boolean;
   summary: {
     content: string;
   };

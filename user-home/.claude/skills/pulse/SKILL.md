@@ -1,14 +1,14 @@
 ---
 name: pulse
 description: >
-  📡 Pulse — Henry's twice-daily briefing.
+  📡 Pulse — Twice-daily tech briefing for group distribution.
   Designed to be triggered by cronjob at morning and evening, or manually.
   Use this skill only when the user says "pulse" or "/pulse".
 ---
 
 # 📡 Pulse
 
-A comprehensive twice-daily briefing combining product launches, open-source trends, curated news, and weather forecasts. Designed to run at morning and evening, but can also be triggered manually at any time.
+A comprehensive twice-daily tech briefing combining product launches, open-source trends, curated news, market indices, and weather forecasts. Designed for group distribution to a 4000+ person tech community. Runs at morning and evening, or manually.
 
 ## Locale
 
@@ -28,6 +28,7 @@ Execute the following steps in order. Step 1.5 runs a Python prefetch script tha
    - Evening → 🌆
 3. Determine the day of the week — needed for Nanjing weekend weather.
 4. Product Hunt launches happen Mon–Fri (Pacific Time). If today is Saturday/Sunday, use the most recent Friday's leaderboard and note this.
+5. You'll get the current time in the `prefetch.fetched_at` field (Step 1.5).
 
 ---
 
@@ -52,7 +53,7 @@ Goal: Get the **top 3–5 AI-related products** from today's Product Hunt leader
 
 1. From the markdown, pick the **top 3–5 products that are AI-related** (AI tools, LLM wrappers, ML infra, AI agents, AIGC, etc.). If fewer than 3 AI products exist, include top overall products to fill the gap.
 2. For each product, collect: product name, one-line tagline, upvote count (if available), direct link `https://www.producthunt.com/posts/{slug}`.
-3. Write a brief personal note (1 sentence) on why it matters.
+3. Write a brief note (1 sentence) on why it matters to the tech community.
 
 ---
 
@@ -63,7 +64,7 @@ Goal: Get the **top 5 repositories** from GitHub Trending (daily).
 **Data source**: Use `prefetch.github_trending` array directly. Each item has `name`, `description`, `language`, `stars_today`, `total_stars`, `url`. Fallback: `web_fetch` on `https://github.com/trending?since=daily` only if prefetch errored.
 
 1. Use the top 5 repos from prefetch data.
-2. Add a brief note on relevance to the user's interests (AI agents, TypeScript, Python, LangChain, medical tech, etc.) if applicable.
+2. Add a brief note on relevance to the tech community (AI, cloud, infrastructure, developer tools, etc.) if applicable.
 
 ---
 
@@ -75,7 +76,7 @@ This is the most editorial step. Gather news from multiple sources, then apply s
 
 **Data source**: Use `prefetch.google_news` array directly (each item has `title`, `link`, `published`). Fallback: `web_fetch` on `https://news.google.com/rss?hl=zh-CN&gl=CN&ceid=CN:zh-Hans` only if prefetch errored.
 
-1. Scan the titles for **major domestic and international events** that a tech professional in China should know about. Think: geopolitical shifts, major policy changes, natural disasters, significant economic events, landmark tech regulations.
+1. Scan the titles for **major domestic and international events** that tech professionals in China should know about. Think: geopolitical shifts, major policy changes, natural disasters, significant economic events, landmark tech regulations.
 2. Only include stories that are genuinely significant — skip routine political coverage and soft news.
 
 #### 4b: Alibaba & ByteDance Corporate News
@@ -85,18 +86,18 @@ This is the most editorial step. Gather news from multiple sources, then apply s
 3. Look for: earnings reports, major product launches, leadership changes, regulatory actions, acquisitions, layoffs, stock-moving events.
 4. If nothing material, skip this sub-section entirely — do NOT pad with trivial news.
 
-#### 4c: AI Health News
+#### 4c: AI Industry News
 
-1. `web_search` for `AI coding news today` and `AI healthcare latest` in English.
-2. Look for: new FDA approvals for AI medical devices, major research breakthroughs (e.g., new foundation models for clinical data), notable funding rounds in digital health AI, regulatory developments.
+1. `web_search` for `AI news today` and `AI coding tools latest` in English.
+2. Look for: major model releases, notable funding rounds, regulatory developments, breakthrough research, significant product launches in the AI space.
 
 #### 4d: Curation Rules (MUST follow)
 
 Before finalizing the news list, apply these filters strictly:
 
 - **Timeliness**: The event MUST have happened today or be about to happen imminently. Do not include stories from yesterday or earlier unless they broke overnight and are still developing.
-- **Significance**: Would the user want to be interrupted to learn about this? If not, skip it.
-- **Deduplication**: Check against the user's recent Pulse outputs (use `conversation_search` with keyword "Pulse" to find recent briefings). Do NOT include a story that appeared in a recent Pulse. If unsure, include it but note it as a developing story.
+- **Significance**: Would the reader want to be interrupted to learn about this? If not, skip it.
+- **Deduplication**: Avoid repeating stories from prior Pulse issues. If a story is a meaningful update to a previous one, include it with a "🔄 进展更新" note.
 - **Result**: Aim for **3–8 news items total** across all sub-categories. Fewer is better than padding.
 
 #### 4e: Podcasts
@@ -110,11 +111,17 @@ Podcast list (maintained in `prefetch.py`):
 
 ---
 
-### Step 5: Stock Data
+### Step 5: Stock Market Indices
 
-**Data source**: Use `prefetch.stock.BABA` directly (`latest.price`, `latest.change`, `latest.change_pct`, `latest.date`, `chart`). The `chart` field contains the absolute path to a 90-day line chart PNG saved at `workspace/outputs/stock-{code}/{YYYY-MM-DD}.png`. Fallback: `python3 scripts/stock.py` only if prefetch errored.
+**Data source**: Use `prefetch.stock` array directly. Each entry has `symbol`, `name`, `market`, and `data` containing `latest` (`price`, `change`, `change_pct`, `date`) and `chart` (absolute path to a 45-day line chart PNG at `workspace/outputs/stock/{symbol}-{YYYY-MM-DD}.png`). Fallback: re-run prefetch only if errored.
 
-If change_pct > 2% or < -2%, `web_search` for related news and report to the user.
+The 4 indices tracked:
+- **上证指数** (SSE Composite) — `sh000001` via Sina Finance
+- **深证成指** (SZSE Component) — `sz399001` via Sina Finance
+- **纳斯达克综合** (NASDAQ Composite) — `^ndq` via stooq
+- **道琼斯工业** (Dow Jones Industrial) — `^dji` via stooq
+
+If any index's change_pct > 2% or < -2%, `web_search` for related news and include it.
 
 ---
 
@@ -126,13 +133,12 @@ Format: list (not table), per city show today + tomorrow with emoji, desc, low°
 
 ---
 
-### Step 7: Check for Deduplication Against Recent Pulses
+### Step 7: Final Deduplication
 
 Before assembling the final output:
 
-1. Use `conversation_search` with query `Pulse` to retrieve recent Pulse briefings.
-2. Compare the news items you've gathered against those recent outputs.
-3. Remove any duplicate stories. If a story is a meaningful UPDATE to a previous story, include it with a note like "🔄 进展更新".
+1. Review all collected news items for internal duplicates across sections.
+2. Remove any duplicate stories. If a story is a meaningful update to a developing event, include it with a "🔄 进展更新" note.
 
 ---
 
@@ -151,7 +157,7 @@ Language: Chinese (full-width punctuation: ，、：！？。）for prose; Engli
 ## <font color="navy">🚀 Product Hunts</font>
 
 - **[Product Name](https://www.producthunt.com/posts/slug)** {upvotes if available}
-简短介绍与结合用户记忆的点评（简体中文）。
+简短介绍与点评（简体中文）。
 
 - **[Product Name](URL)**
 ...
@@ -163,7 +169,7 @@ Language: Chinese (full-width punctuation: ，、：！？。）for prose; Engli
 ## <font color="navy">🔥 GitHub Trending</font>
 
 - **[owner/repo](https://github.com/owner/repo)** ⭐ {total stars} (+{today})
-Description。{Language}。简短点评与结合用户记忆的点评（简体中文）。
+Description。{Language}。简短点评（简体中文）。
 
 - **[owner/repo](URL)** ⭐ ...
 ...
@@ -187,7 +193,7 @@ Description。{Language}。简短点评与结合用户记忆的点评（简体�
 ## <font color="navy">🎙️ Podcasts</font> (If exists updates)
 
 - **[Channel Name - Episode Title](episode_url)** — Podcast Name
-shownotes 摘要（1-2 句简体中文重点总结，与结合用户记忆的点评，以及我为什么需要关注）。
+shownotes 摘要（1-2 句简体中文重点总结）。
 
 - **[Episode Title](episode_url)** — Podcast Name
 ...
@@ -198,20 +204,24 @@ shownotes 摘要（1-2 句简体中文重点总结，与结合用户记忆的点
 
 ## <font color="navy">💰 Stock Market</font>
 
-**{公司名} · {市场} {代码}**
+> For each of the 4 indices in `prefetch.stock`, render the following block:
 
-- 最新价：<font color='red/green'>**{price} {货币}**</font>
+**{index_name} · {market}**
+
+- 最新价：<font color='red/green'>**{price}**</font>
 - 涨跌：{emoji} <font color='red/green'>**{chg:+.2f} / {pct:+.2f}%**</font>
 - 最新交易日：{date}
 > Color red if change is positive, green if negative.
 
-![BABA 45-Day](workspace/outputs/stock-BABA/YYYY-MM-DD.png)
-> The chart image should be **always** included.
+![{index_name} 45-Day](workspace/outputs/stock/{symbol}-YYYY-MM-DD.png)
+> The chart image should be **always** included for each index.
 
 {if_anomaly}
 ⚠️ {abnormal_description}
 - {news_link_list}
 {/if_anomaly}
+
+> Repeat for all 4 indices: 上证指数, 深证成指, 纳斯达克综合, 道琼斯工业
 
 ---
 
@@ -225,16 +235,30 @@ shownotes 摘要（1-2 句简体中文重点总结，与结合用户记忆的点
 - 今天：{emoji} {type}，{low}°C ~ {high}°C
 - 明天：{emoji} {type}，{low}°C ~ {high}°C
 
-**🌿 南京**
+**🗼 广州**
 - 今天：{emoji} {type}，{low}°C ~ {high}°C
 - 明天：{emoji} {type}，{low}°C ~ {high}°C
 
-{综合三座城市天气，带雨伞、洗车等建议}
+**🌴 深圳**
+- 今天：{emoji} {type}，{low}°C ~ {high}°C
+- 明天：{emoji} {type}，{low}°C ~ {high}°C
+
+**🌊 杭州**
+- 今天：{emoji} {type}，{low}°C ~ {high}°C
+- 明天：{emoji} {type}，{low}°C ~ {high}°C
+
+**�🌿 南京**
+- 今天：{emoji} {type}，{low}°C ~ {high}°C
+- 明天：{emoji} {type}，{low}°C ~ {high}°C
+
+{综合六座城市天气，带雨伞、洗车等建议}
 
 ---
 
-> ✨ 本 Pulse 由 [Agentara](https://github.com/MagicCube/agentara) 智能生成
+> ✨ 本 Pulse 由 [Agentara](https://github.com/MagicCube/agentara) 智能生成{if agentara_stars} | 已有 {agentara_stars} 颗 ⭐ {/if}
 > 📡 [打造你的专属 Pulse](https://github.com/MagicCube/agentara)，别忘了 ⭐ Star
+
+> **Footer rule**: If `prefetch.agentara_stars` is a number, show the star count after "智能生成". If it is `null`, omit the star count entirely — do NOT fallback to web search or web fetch.
 ```
 
 ### Formatting Rules
@@ -249,4 +273,4 @@ shownotes 摘要（1-2 句简体中文重点总结，与结合用户记忆的点
 - **Do NOT use citations or `` tags**: Pulse is a briefing, not a research report. Source attribution is handled by the hyperlinks in headings.
 - **No duplication**: Do not include the same news item in the same day.
 - **Stock section**: If market is closed (pre-market / weekend), note the last closing price and state "（已收盘）".
-- **Include the stock chart image**: The path of the image is in the `chart` field of the `prefetch.stock.BABA` object.
+- **Include the stock chart images**: The path of each chart is in the `chart` field of each entry in the `prefetch.stock` array.

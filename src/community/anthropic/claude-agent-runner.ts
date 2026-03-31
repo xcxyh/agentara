@@ -1,5 +1,6 @@
 import {
   config,
+  createLogger,
   extractTextContent,
   type MessageContent,
   type AgentRunnerEvent,
@@ -10,6 +11,18 @@ import {
   type ToolMessage,
   type UserMessage,
 } from "@/shared";
+
+const logger = createLogger("claude-agent-runner");
+
+/**
+ * Error thrown when the agent runner is aborted.
+ */
+export class AgentAbortError extends Error {
+  constructor(message = "Agent execution was aborted") {
+    super(message);
+    this.name = "AgentAbortError";
+  }
+}
 
 /**
  * The agent runner for Claude Code CLI.
@@ -22,11 +35,12 @@ export class ClaudeAgentRunner implements AgentRunner {
     options: AgentRunOptions,
   ): AsyncIterableIterator<AgentRunnerEvent> {
     const sessionId = message.session_id;
+    const isNew = options?.isNewSession ?? false;
+    const signal = options?.signal;
     const textContentOfUserMessage = JSON.stringify(
       extractTextContent(message),
     );
 
-    const isNew = options?.isNewSession ?? false;
     const attemptModes: Array<"new" | "resume"> = [isNew ? "new" : "resume"];
 
     // Recover from a locally persisted session whose Claude-side conversation
@@ -38,7 +52,13 @@ export class ClaudeAgentRunner implements AgentRunner {
 
     let lastError: Error | undefined;
     for (const mode of attemptModes) {
-      const result = await this._runClaude(mode, sessionId, textContentOfUserMessage, options.cwd);
+      const result = await this._runClaude(
+        mode,
+        sessionId,
+        textContentOfUserMessage,
+        options.cwd,
+        signal,
+      );
 
       for (const parsed of result.messages) {
         yield { type: "message", message: parsed };
@@ -66,6 +86,7 @@ export class ClaudeAgentRunner implements AgentRunner {
     sessionId: string,
     prompt: string,
     cwd: string,
+    signal?: AbortSignal,
   ): Promise<{
     messages: Array<SystemMessage | AssistantMessage | ToolMessage>;
     stdoutRaw: string;
@@ -91,6 +112,22 @@ export class ClaudeAgentRunner implements AgentRunner {
       }),
       stderr: "pipe",
     });
+
+    // Handle abort signal
+    let aborted = false;
+    const abortHandler = () => {
+      aborted = true;
+      logger.info({ session_id: sessionId }, "killing Claude Code process");
+      proc.kill();
+    };
+    if (signal) {
+      if (signal.aborted) {
+        proc.kill();
+        throw new AgentAbortError();
+      }
+      signal.addEventListener("abort", abortHandler, { once: true });
+    }
+
     const decoder = new TextDecoder();
     const stderrChunks: Uint8Array[] = [];
     const stderrPipe = proc.stderr.pipeTo(
@@ -103,27 +140,42 @@ export class ClaudeAgentRunner implements AgentRunner {
     const messages: Array<SystemMessage | AssistantMessage | ToolMessage> = [];
     let buffer = "";
     let stdoutRaw = "";
-    for await (const chunk of iterateReadableStream(proc.stdout)) {
-      const decoded = decoder.decode(chunk, { stream: true });
-      buffer += decoded;
-      stdoutRaw += decoded;
-      const lines = buffer.split("\n");
-      buffer = lines.pop()!;
-      for (const line of lines) {
-        if (line.trim()) {
-          const parsed = this._parseStreamLine(line.trim(), sessionId);
-          if (parsed) {
-            messages.push(parsed);
+    try {
+      for await (const chunk of iterateReadableStream(proc.stdout)) {
+        if (aborted) {
+          break;
+        }
+        const decoded = decoder.decode(chunk, { stream: true });
+        buffer += decoded;
+        stdoutRaw += decoded;
+        const lines = buffer.split("\n");
+        buffer = lines.pop()!;
+        for (const line of lines) {
+          if (line.trim()) {
+            const parsed = this._parseStreamLine(line.trim(), sessionId);
+            if (parsed) {
+              messages.push(parsed);
+            }
           }
         }
       }
-    }
-    if (buffer.trim()) {
-      const parsed = this._parseStreamLine(buffer.trim(), sessionId);
-      if (parsed) {
-        messages.push(parsed);
+
+      if (!aborted && buffer.trim()) {
+        const parsed = this._parseStreamLine(buffer.trim(), sessionId);
+        if (parsed) {
+          messages.push(parsed);
+        }
+      }
+    } finally {
+      if (signal) {
+        signal.removeEventListener("abort", abortHandler);
       }
     }
+
+    if (aborted) {
+      throw new AgentAbortError();
+    }
+
     const exitCode = await proc.exited;
     await stderrPipe;
     const stderrText =

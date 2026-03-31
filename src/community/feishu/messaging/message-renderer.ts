@@ -70,7 +70,8 @@ export async function renderMessageCard(
     config: {
       streaming_mode: true,
       enable_forward: true,
-      enable_forward_interaction: false,
+      enable_forward_interaction: true,
+      update_multi: true,
       width_mode: "fill",
       summary: {
         content: "",
@@ -91,9 +92,12 @@ export async function renderMessageCard(
     // Find the last text block (final response), not all text blocks
     const lastTextContent = messageContent.findLast((c) => c.type === "text");
     if (lastTextContent) {
-      const markdownContent = await _uploadMessageResource(lastTextContent.text, {
-        uploadImage,
-      });
+      const markdownContent = await _uploadMessageResource(
+        lastTextContent.text,
+        {
+          uploadImage,
+        },
+      );
       const resultElement: MarkdownElement = {
         tag: "markdown",
         content: markdownContent,
